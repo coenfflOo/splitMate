@@ -1,0 +1,20 @@
+# === Backend (Kotlin JVM) ===
+/backend/build/
+/backend/.gradle/
+/backend/out/
+/backend/.idea/
+
+# === Frontend (Kotlin Web / Compose) ===
+/frontend/build/
+/frontend/.gradle/
+/frontend/.idea/
+/frontend/node_modules/
+/frontend/dist/
+/frontend/composeApp/build/
+
+# === Common ===
+.idea/
+.vscode/
+.DS_Store
+.gradle/
+out/
