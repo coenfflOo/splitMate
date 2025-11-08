@@ -1,11 +1,12 @@
 package domain.split
 
+import domain.money.Money
 import domain.receipt.Receipt
 
 object SplitCalculator {
 
     fun splitEvenly(receipt: Receipt, peopleCount: Int): SplitResult {
-        require(peopleCount > 0) { "peopleCount must be > 0" }
+        validatePeopleCount(peopleCount)
 
         val total = receipt.totalWithTip()
         val perPerson = total.divideBy(peopleCount)
@@ -16,5 +17,8 @@ object SplitCalculator {
             perPerson = perPerson
         )
     }
-}
 
+    private fun validatePeopleCount(peopleCount: Int) {
+        require(peopleCount > 0) { "peopleCount must be > 0" }
+    }
+}
