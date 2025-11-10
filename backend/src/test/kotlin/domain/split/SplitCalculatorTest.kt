@@ -17,8 +17,10 @@ class SplitCalculatorTest {
         // 총액: 27.40 + 2.60 = 30.00
         val base = Money.of("27.40", Currency.CAD)
         val tax = Tax(Money.of("2.60", Currency.CAD))
-        val tip = Tip(TipMode.PERCENT, BigDecimal("10"))  // 10% of 30.00 = 3.00
-
+        val tip = Tip(
+            mode = TipMode.PERCENT,
+            percent = 10              // 10% of 30.00 => 3.00
+        )
         val receipt = Receipt(base, tax, tip)
 
         val result = SplitCalculator.splitEvenly(receipt, peopleCount = 3)
