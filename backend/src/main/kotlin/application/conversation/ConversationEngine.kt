@@ -74,11 +74,14 @@ class ConversationEngine(
         }
 
         val baseMoney = Money.of(amount, Currency.CAD)
-        val newContext = context.copy(baseAmount = baseMoney, failureCount = 0)
+        val newContext = context.copy(
+            baseAmount = baseMoney,
+            failureCount = 0    // ✅ 리셋
+        )
 
         return ConversationOutput(
             nextStep = ConversationStep.ASK_TAX,
-            message = "세금 금액을 입력해주세요. 없으면 0을 입력하세요.",
+            message = "세금 금액을 입력해주세요. 없으면 0 또는 '없음'을 입력하세요.",
             context = newContext
         )
     }
@@ -87,12 +90,17 @@ class ConversationEngine(
         input: String,
         context: ConversationContext
     ): ConversationOutput {
-        val value = input.toBigDecimalOrNull()
-            ?: return invalidNumber(
-                step = ConversationStep.ASK_TAX,
-                message = "세금 금액은 숫자로 입력해주세요.",
-                context = context
-            )
+        val normalized = input.trim().lowercase()
+
+        val value = when (normalized) {
+            "없음", "none", "no" -> BigDecimal.ZERO
+            else -> normalized.toBigDecimalOrNull()
+                ?: return invalidNumber(
+                    step = ConversationStep.ASK_TAX,
+                    message = "세금 금액은 숫자 또는 '없음'으로 입력해주세요.",
+                    context = context
+                )
+        }
 
         if (value < BigDecimal.ZERO) {
             return invalidNumber(
@@ -104,7 +112,10 @@ class ConversationEngine(
 
         val taxMoney = Money.of(value, Currency.CAD)
 
-        val newContext = context.copy(taxAmount = taxMoney)
+        val newContext = context.copy(
+            taxAmount = taxMoney,
+            failureCount = 0      // ✅ 정상 입력 시 실패 카운트 리셋
+        )
 
         return ConversationOutput(
             nextStep = ConversationStep.ASK_TIP_MODE,
@@ -216,7 +227,11 @@ class ConversationEngine(
             )
         }
 
-        val nextCtx = context.copy(peopleCount = n)
+        val nextCtx = context.copy(
+            peopleCount = n,
+            failureCount = 0   // ✅ 리셋
+        )
+
         val message = buildString {
             appendLine("환율 및 통화 선택:")
             appendLine("1) 오늘 환율 자동 조회 (CAD → KRW)")
@@ -230,6 +245,7 @@ class ConversationEngine(
             context = nextCtx
         )
     }
+
 
     // ---------------- 환율 모드/값 ----------------
 
@@ -336,17 +352,51 @@ class ConversationEngine(
                 start()
             }
             "n", "no", "아니오" -> {
-                // 그냥 직전 단계로 돌아가서 다시 시도하도록 유도
+                // 직전 단계로 돌아가서 다시 시도
+                val step = context.lastStep ?: ConversationStep.ASK_TOTAL_AMOUNT
+
+                val msg = when (step) {
+                    ConversationStep.ASK_TOTAL_AMOUNT ->
+                        "그럼 다시 총 결제 금액부터 입력해볼게요.\n총 결제 금액을 입력해주세요 (예: 27.40)"
+
+                    ConversationStep.ASK_TAX ->
+                        "그럼 다시 세금 금액부터 입력해볼게요.\n세금 금액을 입력해주세요. (없으면 0 또는 '없음')"
+
+                    ConversationStep.ASK_TIP_MODE ->
+                        "그럼 팁 입력 방식부터 다시 선택해주세요.\n1) 퍼센트 2) 금액 3) 없음"
+
+                    ConversationStep.ASK_TIP_VALUE ->
+                        "그럼 팁 값을 다시 입력해주세요."
+
+                    ConversationStep.ASK_SPLIT_MODE ->
+                        "분배 방식을 다시 선택해주세요. 1) N분의 1"
+
+                    ConversationStep.ASK_PEOPLE_COUNT ->
+                        "인원 수를 다시 입력해주세요. (예: 3)"
+
+                    ConversationStep.ASK_EXCHANGE_RATE_MODE ->
+                        "환율 및 통화 선택:\n1) 오늘 환율 자동 조회 (CAD → KRW)\n2) 환율 직접 입력 (예: 1000)\n3) KRW 변환 없이 CAD만 보기\n번호를 선택해주세요: "
+
+                    ConversationStep.ASK_EXCHANGE_RATE_VALUE ->
+                        "환율을 숫자로 입력해주세요. 예) 1000"
+
+                    ConversationStep.SHOW_RESULT ->
+                        "이미 계산이 완료되었습니다."
+
+                    ConversationStep.RESTART_CONFIRM ->
+                        "처음부터 다시 시작하시겠습니까? (Y/N)"
+                }
+
                 ConversationOutput(
-                    nextStep = ConversationStep.ASK_TOTAL_AMOUNT,
-                    message = "그럼 다시 처음 금액부터 입력해볼게요.\n총 결제 금액을 입력해주세요 (예: 27.40)",
-                    context = ConversationContext()  // 완전 초기화
+                    nextStep = step,
+                    message = msg,
+                    context = context.copy(failureCount = 0)
                 )
             }
             else -> {
                 ConversationOutput(
                     nextStep = ConversationStep.RESTART_CONFIRM,
-                    message = "Y 또는 N으로 입력해주세요. 다시 시작하시겠어요? (Y/N)",
+                    message = "Y 또는 N으로 입력해주세요. 처음부터 다시 시작하시겠습니까? (Y/N)",
                     context = context
                 )
             }
@@ -423,11 +473,7 @@ class ConversationEngine(
         message: String,
         context: ConversationContext
     ): ConversationOutput {
-        return ConversationOutput(
-            nextStep = step,
-            message = message,
-            context = context
-        )
+        return retry(step, message, context)
     }
 
     private fun retry(
@@ -437,7 +483,7 @@ class ConversationEngine(
     ): ConversationOutput {
         val newCount = context.failureCount + 1
 
-        // 3번 이상 연속 실패하면 RESTART_CONFIRM 단계로 보낸다
+        // 🔽 3번 이상 연속 실패 시 재시작 여부 확인 단계로 전환
         if (newCount >= 3) {
             val msg = buildString {
                 appendLine(reason)
@@ -447,7 +493,10 @@ class ConversationEngine(
             return ConversationOutput(
                 nextStep = ConversationStep.RESTART_CONFIRM,
                 message = msg,
-                context = context.copy(failureCount = 0)   // 카운트 초기화
+                context = context.copy(
+                    failureCount = 0,
+                    lastStep = step
+                )
             )
         }
 
@@ -456,7 +505,7 @@ class ConversationEngine(
                 "$reason\n총 결제 금액을 입력해주세요 (예: 27.40)"
 
             ConversationStep.ASK_TAX ->
-                "$reason\n세금 금액을 입력해주세요. (없으면 0)"
+                "$reason\n세금 금액을 입력해주세요. (없으면 0 또는 '없음')"
 
             ConversationStep.ASK_TIP_MODE ->
                 "$reason\n팁 입력 방식을 선택해주세요. 1) 퍼센트 2) 금액 3) 없음"
