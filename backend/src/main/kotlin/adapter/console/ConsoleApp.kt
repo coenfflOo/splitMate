@@ -1,7 +1,9 @@
 package adapter.console
 
+import adapter.fx.HttpExchangeRateProvider
 import application.conversation.ConversationEngine
 import application.session.ConversationContext
+import domain.fx.ExchangeService
 
 class ConsoleApp(
     private val engine: ConversationEngine,
@@ -49,9 +51,20 @@ class ConsoleApp(
 }
 
 fun main() {
-    val engine = ConversationEngine()
     val io = StdConsoleIO()
-    val app = ConsoleApp(engine, io)
 
+    // 환경변수에서 인증키 읽기
+    val authKey = System.getenv("KOREA_EXIM_AUTH_KEY")
+    val engine =
+        if (authKey.isNullOrBlank()) {
+            io.println("[안내] KOREA_EXIM_AUTH_KEY 환경변수가 없어 자동 환율 조회는 비활성화됩니다. (수동 입력 사용)")
+            ConversationEngine(exchangeService = null)
+        } else {
+            val provider = HttpExchangeRateProvider(authKey)
+            val exchangeService = ExchangeService(provider)
+            ConversationEngine(exchangeService)
+        }
+
+    val app = ConsoleApp(engine, io)
     app.run()
 }
