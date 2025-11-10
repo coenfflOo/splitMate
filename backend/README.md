@@ -82,9 +82,15 @@ com.splitmate
  │   │    ├─ ConsoleApp.kt
  │   │    └─ ConsoleIO.kt
  │   │
- │   └─ fx
- │        └─ HttpExchangeRateProvider.kt
- │
+ │   ├─ fx
+ │   │    └─ HttpExchangeRateProvider.kt
+ │   └─ http        
+ │       ├─ dto
+ │       │    ├─ SplitEvenRequest.kt
+ │       │    ├─ SplitEvenResponse.kt
+ │       │    ├─ MenuSplitRequest.kt
+ │       │    └─ MenuSplitResponse.kt
+ │       └─ SplitHttpHandler.kt   # (나중에 Controller로 연결)
  └─ config            # 앱 시작점, 의존성 조립
       └─ AppConfig.kt   (혹은 Main.kt 에서 직접 조립)
 ```
@@ -263,7 +269,7 @@ com.splitmate
 - [x]  `FakeExchangeRateProvider` 나 Mock을 사용해, `getRate("CAD", "KRW")` 호출 시 1000.0을 반환하도록 설정하고, 전체 계산 흐름이 이 값을 사용해 제대로 결과를 산출하는지 테스트.
 
 - [ ] provider가 예외를 던지는 상황(실패 케이스)은 아직 테스트 없음 → [ ] 유지 
-- [ ] 실제 API 엔드포인트 향한 통합 테스트는 아직 없음 (선택사항)
+- [ ] 실제 API 엔드포인트 향한 통합 테스트는 아직 없음 
 
 
 ---
@@ -323,8 +329,8 @@ com.splitmate
 
 **구현**
 
-- [ ]  `MenuItem` 값 객체를 정의한다. (id, name, price: Money)
-- [ ]  `Participant` 값/엔티티를 정의한다. (id, displayName)
+- [x]  `MenuItem` 값 객체를 정의한다. (id, name, price: Money)
+- [x]  `Participant` 값/엔티티를 정의한다. (id, displayName)
 
 **테스트**
 
@@ -337,8 +343,8 @@ com.splitmate
 
 **구현**
 
-- [ ]  `MenuAssignment(menuItem, participants)`로 “이 메뉴를 누가 함께 먹었는지” 표현한다.
-- [ ]  `participants` 리스트가 비어 있으면 예외로 처리한다.
+- [x]  `MenuAssignment(menuItem, participants)`로 “이 메뉴를 누가 함께 먹었는지” 표현한다.
+- [x]  `participants` 리스트가 비어 있으면 예외로 처리한다.
 
 **테스트**
 
@@ -352,16 +358,16 @@ com.splitmate
 
 **구현**
 
-- [ ]  `assignments`로부터 사람별 메뉴 소계(subtotal)를 계산한다.
-- [ ]  `Receipt`의 `baseAmount + tax + tip`으로 전체 금액을 계산한다.
-- [ ]  각 사람의 `subtotal / baseAmount` 비율에 따라 세금/팁을 비례 분배한다.
-- [ ]  반올림 정책은 `Money`의 SCALE(2), HALF_UP을 따른다.
+- [x]  `assignments`로부터 사람별 메뉴 소계(subtotal)를 계산한다.
+- [x]  `Receipt`의 `baseAmount + tax + tip`으로 전체 금액을 계산한다.
+- [x]  각 사람의 `subtotal / baseAmount` 비율에 따라 세금/팁을 비례 분배한다.
+- [x]  반올림 정책은 `Money`의 SCALE(2), HALF_UP을 따른다.
 - [ ]  세금/팁 분배로 인해 생기는 1~2 cent 오차를 한 사람에게 몰아서 보정하는 정책을 정한다. (선택)
 
 **테스트**
 
-- [ ]  “각자 메뉴만 있는 경우” 사람별 총액이 기대값과 일치하는지 테스트.
-- [ ]  “모두가 공유한 메뉴 1개”인 경우, 완전히 균등하게 나누어지는지 테스트.
+- [x]  “각자 메뉴만 있는 경우” 사람별 총액이 기대값과 일치하는지 테스트.
+- [x]  “모두가 공유한 메뉴 1개”인 경우, 완전히 균등하게 나누어지는지 테스트.
 - [ ]  “혼자 먹은 메뉴 + 공유 메뉴 혼합” 케이스에서 비율과 금액이 맞는지 테스트.
 - [ ]  subtotal 합과 baseAmount가 크게 다를 때(입력 실수)는 예외 or 로그로 처리하는 정책을 테스트. (선택)
 
@@ -371,9 +377,9 @@ com.splitmate
 
 **구현**
 
-- [ ]  `PerPersonShare`에 subtotal, taxShare, tipShare, total 필드를 가진다.
-- [ ]  `SplitResult`는 total(전체) + `List<PerPersonShare>` 구조로 정의한다.
-- [ ]  기존 N분의 1 계산 결과도 `SplitResult`로 통일한다.
+- [x]  `PerPersonShare`에 subtotal, taxShare, tipShare, total 필드를 가진다.
+- [x]  메뉴별 계산 결과로 MenuSplitResult(total, shares)를 정의한다.
+- [ ]  N분의 1 결과도 List<PerPersonShare> 구조로 통합할지 여부는 추후 리팩터링 단계에서 고려.
 
 **테스트**
 
@@ -393,6 +399,28 @@ com.splitmate
 
 - [ ]  rate = 1000일 때, perPerson.total(CAD)가 올바르게 KRW로 변환되는지 테스트.
 - [ ]  메뉴별 분배 + 자동 환율 모드가 함께 동작하는 엔드투엔드 시나리오 테스트.
+
+---
+
+### 6. HTTP API (Spring 기반 REST)
+**구현**
+
+- [ ]  `adapter.http` 패키지 생성
+- [ ]  `SplitController` 구현
+    - `POST /api/split/even` (N분의 1)
+    - `POST /api/split/by-menu` (메뉴별)
+- [ ]  요청/응답 DTO 정의 (`adapter.http.dto`)
+    - `SplitEvenRequest`, `SplitEvenResponse`
+    - `MenuSplitRequest`, `MenuSplitResponse`
+- [ ]  DTO → 도메인 (`Receipt`, `MenuItem`, `Participant`, `MenuAssignment`) 변환 로직
+- [ ]  도메인 결과(`SplitResult`, `MenuSplitResult`) → 응답 DTO 변환
+
+**테스트**
+
+- [ ]  컨트롤러 단위 테스트
+    - 유효한 요청 → 기대한 JSON 응답이 나오는지
+- [ ]  잘못된 입력(음수 금액, 잘못된 통화, 빈 참가자 등)에 대한 에러 응답 형식 테스트
+- [ ]  메뉴별 요청에서 세금/팁/환율이 반영된 금액이 정확한지 통합 테스트 1~2개
 
 ---
 ## 🚦 구현 우선순위 (MVP 기준)
