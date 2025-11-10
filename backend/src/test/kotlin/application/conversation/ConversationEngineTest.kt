@@ -19,6 +19,8 @@ class ConversationEngineTest {
 
     @Test
     fun `행복 경로 - 총액부터 1인당 금액 계산까지 흐름이 이어진다`() {
+        val engine = ConversationEngine()
+
         // start
         val start = engine.start()
         val ctx0 = start.context
@@ -68,11 +70,23 @@ class ConversationEngineTest {
             input = "3",
             context = ctx5
         )
+        val ctx6 = step6.context
+        // ✅ 여기서는 아직 환율 모드 선택 단계여야 한다
+        assertEquals(ConversationStep.ASK_EXCHANGE_RATE_MODE, step6.nextStep)
 
-        assertEquals(ConversationStep.SHOW_RESULT, step6.nextStep)
-        assertTrue(step6.isFinished)
-        assertTrue(step6.message.contains("1인당"))
-        assertTrue(step6.message.contains("11.00"))
+        // 환율은 신경 안 쓰고 CAD만 보기 → 3번 선택
+        val step7 = engine.handle(
+            step = step6.nextStep,
+            input = "3",
+            context = ctx6
+        )
+
+        assertEquals(ConversationStep.SHOW_RESULT, step7.nextStep)
+        assertTrue(step7.isFinished)
+
+        val msg = step7.message
+        assertTrue(msg.contains("1인당"))
+        assertTrue(msg.contains("11.00"))  // 33 / 3 = 11.00
     }
 
     @Test

@@ -66,15 +66,17 @@ class ConversationEngineExchangeTest {
     fun `자동 환율 조회 실패시 수동 입력으로 폴백 유도`() {
         val engine = ConversationEngine(ExchangeService(FakeProviderFail()))
         var out = engine.start()
-        out = engine.handle(out.nextStep, "10.00", out.context)
-        out = engine.handle(out.nextStep, "0", out.context)
-        out = engine.handle(out.nextStep, "1", out.context)
-        out = engine.handle(out.nextStep, "0", out.context)
-        out = engine.handle(out.nextStep, "1", out.context)
-        out = engine.handle(out.nextStep, "1", out.context)  // 자동 조회 선택
+        out = engine.handle(out.nextStep, "10.00", out.context) // 총액
+        out = engine.handle(out.nextStep, "0", out.context)     // 세금
+        out = engine.handle(out.nextStep, "1", out.context)     // 팁 모드
+        out = engine.handle(out.nextStep, "0", out.context)     // 팁 값
+        out = engine.handle(out.nextStep, "1", out.context)     // 분배 방식: N분의 1
+        out = engine.handle(out.nextStep, "1", out.context)     // 인원 수: 1  → ASK_EXCHANGE_RATE_MODE
+        out = engine.handle(out.nextStep, "1", out.context)     // 환율 모드: 자동 조회 선택
 
         // 자동 조회 실패 -> 환율 수동 입력 질문 단계로 전환되어야 함
         assertEquals(ConversationStep.ASK_EXCHANGE_RATE_VALUE, out.nextStep)
         assertTrue(out.message.contains("환율 조회에 실패했습니다"))
     }
+
 }
