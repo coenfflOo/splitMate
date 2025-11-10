@@ -56,17 +56,24 @@ com.splitmate
  │   │    ├─ Tax.kt
  │   │    └─ Tip.kt
  │   │
- │   ├─ split
- │   │    ├─ SplitMode.kt
- │   │    ├─ SplitResult.kt
- │   │    └─ SplitCalculator.kt
+ │   ├─ menu              
+ │   │    ├─ MenuItem.kt          
+ │   │    ├─ Participant.kt       
+ │   │    └─ MenuAssignment.kt    
  │   │
- │   ├─ fx            # foreign exchange (환율)
+ │   ├─ split             
+ │   │    ├─ SplitMode.kt         
+ │   │    ├─ SplitResult.kt       
+ │   │    ├─ PerPersonShare.kt    
+ │   │    ├─ MenuSplitResult.kt   
+ │   │    └─ SplitCalculator.kt   
+ │   │
+ │   ├─ fx                # foreign exchange (환율)
  │   │    ├─ ExchangeRate.kt
  │   │    ├─ ExchangeRateProvider.kt
  │   │    └─ ExchangeService.kt
  │   │
- │   └─ conversation  # 대화 단계 정의 (입출력은 없음)
+ │   └─ conversation      # 대화 단계 정의 (입출력은 없음)
  │        ├─ ConversationStep.kt
  │        └─ ConversationOutput.kt
  │
@@ -89,7 +96,7 @@ com.splitmate
 
 ---
 
-# 🗒️ Feature List & TDD 체크리스트
+# 🗒️ Feature List 1차
 
 ### 1. 세션/대화 흐름 (콘솔 기준)
 
@@ -311,7 +318,83 @@ com.splitmate
 
 
 ---
+# 🗒️ Feature List 2차
+### 1. 메뉴 & 참가자 모델링
 
+**구현**
+
+- [ ]  `MenuItem` 값 객체를 정의한다. (id, name, price: Money)
+- [ ]  `Participant` 값/엔티티를 정의한다. (id, displayName)
+
+**테스트**
+
+- [ ]  `MenuItem` 생성 시 음수/0 가격을 허용하지 않는지 검증한다.
+- [ ]  `Participant`가 equals/hashCode 기준으로 잘 비교되는지 검증한다. (id 기반)
+
+---
+
+### 2. 메뉴별 선택 & 공유 표현 (`MenuAssignment`)
+
+**구현**
+
+- [ ]  `MenuAssignment(menuItem, participants)`로 “이 메뉴를 누가 함께 먹었는지” 표현한다.
+- [ ]  `participants` 리스트가 비어 있으면 예외로 처리한다.
+
+**테스트**
+
+- [ ]  `participants`가 1명일 때 → 전액이 그 사람 subtotal에 더해지는지 테스트.
+- [ ]  `participants`가 N명일 때 → 메뉴 가격이 `N`으로 나뉘어 각 사람 subtotal에 더해지는지 테스트.
+- [ ]  `participants`가 빈 리스트일 때 예외가 나는지 테스트.
+
+---
+
+### 3. 메뉴별 세금/팁 비례 분배 (`SplitCalculator.splitByMenu`)
+
+**구현**
+
+- [ ]  `assignments`로부터 사람별 메뉴 소계(subtotal)를 계산한다.
+- [ ]  `Receipt`의 `baseAmount + tax + tip`으로 전체 금액을 계산한다.
+- [ ]  각 사람의 `subtotal / baseAmount` 비율에 따라 세금/팁을 비례 분배한다.
+- [ ]  반올림 정책은 `Money`의 SCALE(2), HALF_UP을 따른다.
+- [ ]  세금/팁 분배로 인해 생기는 1~2 cent 오차를 한 사람에게 몰아서 보정하는 정책을 정한다. (선택)
+
+**테스트**
+
+- [ ]  “각자 메뉴만 있는 경우” 사람별 총액이 기대값과 일치하는지 테스트.
+- [ ]  “모두가 공유한 메뉴 1개”인 경우, 완전히 균등하게 나누어지는지 테스트.
+- [ ]  “혼자 먹은 메뉴 + 공유 메뉴 혼합” 케이스에서 비율과 금액이 맞는지 테스트.
+- [ ]  subtotal 합과 baseAmount가 크게 다를 때(입력 실수)는 예외 or 로그로 처리하는 정책을 테스트. (선택)
+
+---
+
+### 4. `SplitResult` & `PerPersonShare`
+
+**구현**
+
+- [ ]  `PerPersonShare`에 subtotal, taxShare, tipShare, total 필드를 가진다.
+- [ ]  `SplitResult`는 total(전체) + `List<PerPersonShare>` 구조로 정의한다.
+- [ ]  기존 N분의 1 계산 결과도 `SplitResult`로 통일한다.
+
+**테스트**
+
+- [ ]  `SplitResult.total`가 사람별 total 합과 일치하는지 테스트.
+- [ ]  `PerPersonShare.total == subtotal + taxShare + tipShare`를 보장하는지 테스트.
+
+---
+
+### 5. KRW 변환과의 연결 (기존 도메인과 합치기)
+
+**구현**
+
+- [ ]  메뉴별 분배 결과(PerPersonShare)를 입력으로 받아 CAD → KRW로 변환하는 helper를 만든다. (`ExchangeService` 재사용)
+- [ ]  환율 없이 CAD만 보고 싶을 때는 KRW 계산을 생략한다.
+
+**테스트**
+
+- [ ]  rate = 1000일 때, perPerson.total(CAD)가 올바르게 KRW로 변환되는지 테스트.
+- [ ]  메뉴별 분배 + 자동 환율 모드가 함께 동작하는 엔드투엔드 시나리오 테스트.
+
+---
 ## 🚦 구현 우선순위 (MVP 기준)
 
 **1차 (콘솔 기준, 반드시 구현)**
@@ -323,7 +406,7 @@ com.splitmate
 - 계산 결과 반환 (요약 정보)
 - 잘못된 입력 재입력 처리
 
-**2차 (시간이 되면 도전)**
+**2차 (가능하면 도전 꼭 하기)**
 
 - 메뉴별 계산
 - HTTP 기반 단순 웹/채팅 API
