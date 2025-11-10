@@ -15,5 +15,7 @@ data class ConversationContext(
     val peopleCount: Int? = null,           // 인원 수
 
     val wantKrw: Boolean = false,           // KRW로도 보고 싶은지
-    val manualRate: BigDecimal? = null      // 1 CAD = ? KRW (수동 또는 자동 조회 값)
+    val manualRate: BigDecimal? = null,      // 1 CAD = ? KRW (수동 또는 자동 조회 값)
+
+    val failureCount: Int = 0
 )

@@ -39,10 +39,8 @@ class ConversationEngine(
             ConversationStep.ASK_TIP_VALUE -> handleTipValue(input, context)
             ConversationStep.ASK_SPLIT_MODE -> handleSplitMode(input, context)
             ConversationStep.ASK_PEOPLE_COUNT -> handlePeopleCount(input, context)
-
             ConversationStep.ASK_EXCHANGE_RATE_MODE -> handleExchangeMode(input, context)
             ConversationStep.ASK_EXCHANGE_RATE_VALUE -> handleExchangeValue(input, context)
-
             ConversationStep.SHOW_RESULT ->
                 ConversationOutput(
                     nextStep = ConversationStep.SHOW_RESULT,
@@ -50,6 +48,7 @@ class ConversationEngine(
                     context = context,
                     isFinished = true
                 )
+            ConversationStep.RESTART_CONFIRM -> handleRestartConfirm(input, context) // 🔽 추가
         }
     }
 
@@ -75,7 +74,7 @@ class ConversationEngine(
         }
 
         val baseMoney = Money.of(amount, Currency.CAD)
-        val newContext = context.copy(baseAmount = baseMoney)
+        val newContext = context.copy(baseAmount = baseMoney, failureCount = 0)
 
         return ConversationOutput(
             nextStep = ConversationStep.ASK_TAX,
@@ -327,6 +326,33 @@ class ConversationEngine(
         return summarize(context.copy(wantKrw = true, manualRate = rate))
     }
 
+    private fun handleRestartConfirm(
+        input: String,
+        context: ConversationContext
+    ): ConversationOutput {
+        return when (input.trim().lowercase()) {
+            "y", "yes", "예", "네" -> {
+                // 전체 상태 초기화 + 처음 질문으로
+                start()
+            }
+            "n", "no", "아니오" -> {
+                // 그냥 직전 단계로 돌아가서 다시 시도하도록 유도
+                ConversationOutput(
+                    nextStep = ConversationStep.ASK_TOTAL_AMOUNT,
+                    message = "그럼 다시 처음 금액부터 입력해볼게요.\n총 결제 금액을 입력해주세요 (예: 27.40)",
+                    context = ConversationContext()  // 완전 초기화
+                )
+            }
+            else -> {
+                ConversationOutput(
+                    nextStep = ConversationStep.RESTART_CONFIRM,
+                    message = "Y 또는 N으로 입력해주세요. 다시 시작하시겠어요? (Y/N)",
+                    context = context
+                )
+            }
+        }
+    }
+
     // ---------------- 요약 + KRW 변환 ----------------
 
     private fun summarize(context: ConversationContext): ConversationOutput {
@@ -409,6 +435,22 @@ class ConversationEngine(
         reason: String,
         context: ConversationContext
     ): ConversationOutput {
+        val newCount = context.failureCount + 1
+
+        // 3번 이상 연속 실패하면 RESTART_CONFIRM 단계로 보낸다
+        if (newCount >= 3) {
+            val msg = buildString {
+                appendLine(reason)
+                appendLine()
+                append("입력을 여러 번 잘못하셨어요. 처음부터 다시 시작하시겠습니까? (Y/N)")
+            }
+            return ConversationOutput(
+                nextStep = ConversationStep.RESTART_CONFIRM,
+                message = msg,
+                context = context.copy(failureCount = 0)   // 카운트 초기화
+            )
+        }
+
         val msg = when (step) {
             ConversationStep.ASK_TOTAL_AMOUNT ->
                 "$reason\n총 결제 금액을 입력해주세요 (예: 27.40)"
@@ -436,11 +478,15 @@ class ConversationEngine(
 
             ConversationStep.SHOW_RESULT ->
                 reason
+
+            ConversationStep.RESTART_CONFIRM ->
+                reason
         }
+
         return ConversationOutput(
             nextStep = step,
             message = msg,
-            context = context
+            context = context.copy(failureCount = newCount)
         )
     }
 
