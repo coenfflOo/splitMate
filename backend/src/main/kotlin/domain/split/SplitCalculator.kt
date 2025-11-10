@@ -1,5 +1,6 @@
 package domain.split
 
+import domain.menu.MenuAssignment
 import domain.money.Money
 import domain.receipt.Receipt
 
@@ -16,6 +17,13 @@ object SplitCalculator {
             peopleCount = peopleCount,
             perPerson = perPerson
         )
+    }
+
+    fun splitByMenu(
+        receipt: Receipt,
+        assignments: List<MenuAssignment>
+    ): MenuSplitResult {
+        throw NotImplementedError("splitByMenu is not implemented yet")
     }
 
     private fun validatePeopleCount(peopleCount: Int) {
