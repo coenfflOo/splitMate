@@ -13,6 +13,7 @@ import domain.split.SplitCalculator
 import java.math.BigDecimal
 import java.math.RoundingMode
 
+
 class ConversationEngine(
     private val exchangeService: ExchangeService? = null
 ) {
@@ -103,9 +104,8 @@ class ConversationEngine(
         }
 
         val taxMoney = Money.of(value, Currency.CAD)
-        val tax = Tax(taxMoney)
 
-        val newContext = context.copy(tax = tax)
+        val newContext = context.copy(taxAmount = taxMoney)
 
         return ConversationOutput(
             nextStep = ConversationStep.ASK_TIP_MODE,
@@ -114,72 +114,69 @@ class ConversationEngine(
         )
     }
 
-    private fun handleTipMode(
-        input: String,
-        context: ConversationContext
-    ): ConversationOutput {
+    private fun handleTipMode(input: String, context: ConversationContext): ConversationOutput {
         return when (input.trim()) {
-            "1" -> ConversationOutput(
-                nextStep = ConversationStep.ASK_TIP_VALUE,
-                message = "팁 퍼센트를 입력해주세요. (예: 15)",
-                context = context
-            )
-
-            "2" -> ConversationOutput(
-                nextStep = ConversationStep.ASK_TIP_VALUE,
-                message = "팁 금액을 입력해주세요. (예: 5.25)",
-                context = context
-            )
-
-            "3" -> {
-                val base = requireNotNull(context.baseAmount) { "baseAmount is required" }
-                val tax = requireNotNull(context.tax) { "tax is required" }
-                val receipt = Receipt(base, tax, null)
-                val newContext = context.copy(receipt = receipt)
-
+            "1" -> { // 퍼센트
                 ConversationOutput(
-                    nextStep = ConversationStep.ASK_SPLIT_MODE,
-                    message = "분배 방식을 선택해주세요. 1) N분의 1",
-                    context = newContext
+                    message = "팁 퍼센트를 입력해주세요. (예: 15)",
+                    nextStep = ConversationStep.ASK_TIP_VALUE,
+                    context = context.copy(tipMode = TipMode.PERCENT)
                 )
             }
-
-            else -> ConversationOutput(
-                nextStep = ConversationStep.ASK_TIP_MODE,
-                message = "1, 2, 3 중에서 선택해주세요.",
-                context = context
-            )
+            "2" -> { // 절대 금액
+                ConversationOutput(
+                    message = "팁 금액($)을 입력해주세요. (예: 10.00)",
+                    nextStep = ConversationStep.ASK_TIP_VALUE,
+                    context = context.copy(tipMode = TipMode.ABSOLUTE)
+                )
+            }
+            "3" -> { // 없음
+                // 바로 분배 방식으로 진행
+                ConversationOutput(
+                    message = "분배 방식을 선택해주세요. 1) N분의 1",
+                    nextStep = ConversationStep.ASK_SPLIT_MODE,
+                    context = context.copy(tipMode = TipMode.NONE, tipPercent = 0, tipAbsolute = null)
+                )
+            }
+            else -> retry(ConversationStep.ASK_TIP_MODE, "1) 퍼센트 2) 금액 3) 없음 중에서 선택해주세요.", context)
         }
     }
 
-    private fun handleTipValue(
-        input: String,
-        context: ConversationContext
-    ): ConversationOutput {
-        val value = input.toBigDecimalOrNull()
-            ?: return ConversationOutput(
-                nextStep = ConversationStep.ASK_TIP_VALUE,
-                message = "팁 값은 숫자로 입력해주세요.",
-                context = context
-            )
-
-        val base = requireNotNull(context.baseAmount) { "baseAmount is required" }
-        val tax = requireNotNull(context.tax) { "tax is required" }
-
-        // 지금은 퍼센트 모드만 사용
-        val tip = Tip(TipMode.PERCENT, value)
-
-        val receipt = Receipt(base, tax, tip)
-        val newContext = context.copy(
-            tip = tip,
-            receipt = receipt
-        )
-
-        return ConversationOutput(
-            nextStep = ConversationStep.ASK_SPLIT_MODE,
-            message = "분배 방식을 선택해주세요. 1) N분의 1",
-            context = newContext
-        )
+    private fun handleTipValue(input: String, context: ConversationContext): ConversationOutput {
+        return when (context.tipMode) {
+            TipMode.PERCENT -> {
+                val p = input.toIntOrNull()
+                    ?: return retry(ConversationStep.ASK_TIP_VALUE, "정수 퍼센트로 입력해주세요. (예: 15)", context)
+                if (p < 0 || p > 100) {
+                    return retry(ConversationStep.ASK_TIP_VALUE, "0~100 사이의 퍼센트를 입력해주세요.", context)
+                }
+                ConversationOutput(
+                    message = "분배 방식을 선택해주세요. 1) N분의 1",
+                    nextStep = ConversationStep.ASK_SPLIT_MODE,
+                    context = context.copy(tipPercent = p, tipAbsolute = null)
+                )
+            }
+            TipMode.ABSOLUTE -> {
+                val v = input.toBigDecimalOrNull()
+                    ?: return retry(ConversationStep.ASK_TIP_VALUE, "숫자 금액으로 입력해주세요. (예: 10.00)", context)
+                if (v <= java.math.BigDecimal.ZERO) {
+                    return retry(ConversationStep.ASK_TIP_VALUE, "0보다 큰 값을 입력해주세요.", context)
+                }
+                ConversationOutput(
+                    message = "분배 방식을 선택해주세요. 1) N분의 1",
+                    nextStep = ConversationStep.ASK_SPLIT_MODE,
+                    context = context.copy(tipAbsolute = domain.money.Money.of(v, domain.money.Currency.CAD))
+                )
+            }
+            TipMode.NONE, null -> {
+                // 안전망: NONE 처리로 진행
+                ConversationOutput(
+                    message = "분배 방식을 선택해주세요. 1) N분의 1",
+                    nextStep = ConversationStep.ASK_SPLIT_MODE,
+                    context = context.copy(tipMode = TipMode.NONE, tipPercent = 0, tipAbsolute = null)
+                )
+            }
+        }
     }
 
     private fun handleSplitMode(
@@ -333,22 +330,45 @@ class ConversationEngine(
     // ---------------- 요약 + KRW 변환 ----------------
 
     private fun summarize(context: ConversationContext): ConversationOutput {
+        // 1. 기본 값 꺼내기
         val base = requireNotNull(context.baseAmount) { "baseAmount is required" }
-        val tax = context.tax ?: Tax(Money.zero(Currency.CAD))
+        val taxMoney = context.taxAmount ?: Money.zero(Currency.CAD)
         val people = requireNotNull(context.peopleCount) { "peopleCount is required" }
 
-        val receipt = Receipt(base, tax, context.tip)
+        // 2. TipMode에 따라 Tip 도메인 객체 만들기
+        val tip = when (context.tipMode) {
+            TipMode.PERCENT -> {
+                val percent = context.tipPercent ?: 0
+                Tip(mode = TipMode.PERCENT, percent = percent)
+            }
+            TipMode.ABSOLUTE -> {
+                val abs = context.tipAbsolute ?: Money.zero(Currency.CAD)
+                Tip(mode = TipMode.ABSOLUTE, absolute = abs)
+            }
+            TipMode.NONE, null -> {
+                Tip(mode = TipMode.NONE)
+            }
+        }
+
+        // 3. Receipt 만들고 N분의 1 계산
+        val receipt = Receipt(
+            baseAmount = base,
+            tax = Tax(taxMoney),
+            tip = tip
+        )
         val splitResult = SplitCalculator.splitEvenly(receipt, people)
 
         val totalCad = splitResult.total
         val perPersonCad = splitResult.perPerson
 
+        // 4. 기본 CAD 요약 메시지
         val sb = StringBuilder()
         sb.appendLine("=== 계산 결과 ===")
         sb.appendLine("총 금액: ${formatMoney(totalCad)}")
         sb.appendLine("인원 수: $people")
         sb.appendLine("1인당: ${formatMoney(perPersonCad)}")
 
+        // 5. KRW 옵션 처리 (환율 있는 경우)
         if (context.wantKrw && context.manualRate != null) {
             val krw = convertWithRate(perPersonCad, context.manualRate)
             sb.appendLine("환율: 1 CAD = ${formatRate(context.manualRate)} KRW")
@@ -362,6 +382,7 @@ class ConversationEngine(
             isFinished = true
         )
     }
+
 
     private fun convertWithRate(cad: Money, rate: BigDecimal): Money {
         val krwAmount = cad.amount.multiply(rate)
