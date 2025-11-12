@@ -1,8 +1,5 @@
 package adapter.http.dto
 
-/**
- * 에러 응답 공통 포맷
- */
 data class ErrorResponse(
     val error: ErrorBody
 )

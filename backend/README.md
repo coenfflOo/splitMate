@@ -405,11 +405,11 @@ com.splitmate
 ### 6. HTTP API (Spring 기반 REST)
 **구현**
 
-- [ ]  `adapter.http` 패키지 생성
-- [ ]  `SplitController` 구현
+- [x]  `adapter.http` 패키지 생성
+- [x]  `SplitController` 구현
     - `POST /api/split/even` (N분의 1)
     - `POST /api/split/by-menu` (메뉴별)
-- [ ]  요청/응답 DTO 정의 (`adapter.http.dto`)
+- [x]  요청/응답 DTO 정의 (`adapter.http.dto`)
     - `SplitEvenRequest`, `SplitEvenResponse`
     - `MenuSplitRequest`, `MenuSplitResponse`
 - [ ]  DTO → 도메인 (`Receipt`, `MenuItem`, `Participant`, `MenuAssignment`) 변환 로직

@@ -52,7 +52,7 @@ import java.math.RoundingMode
 
 data class Tip(
     val mode: TipMode,
-    val percent: Int = 0,
+    val percent: Int? = null,
     val absolute: Money? = null
 ) {
 
@@ -64,16 +64,20 @@ data class Tip(
         }
     }
 
-    fun amountOn(base: Money): Money = when (mode) {
-        TipMode.PERCENT -> {
-            val rate = BigDecimal(percent)
-                .divide(BigDecimal(100))
-            val amt = base.amount
-                .multiply(rate)
-                .setScale(2, RoundingMode.HALF_UP)
-            Money.of(amt, base.currency)
+    fun amountOn(base: Money): Money {
+        return when (mode) {
+            TipMode.PERCENT -> {
+                requireNotNull(percent) { "percent required for PERCENT mode" }
+                val ratio = BigDecimal(percent).divide(BigDecimal(100))
+                Money.of(base.amount.multiply(ratio), base.currency)
+            }
+
+            TipMode.ABSOLUTE -> {
+                requireNotNull(absolute) { "absolute required for ABSOLUTE mode" }
+                absolute
+            }
+
+            TipMode.NONE -> Money.zero(base.currency)
         }
-        TipMode.ABSOLUTE -> absolute ?: Money.zero(base.currency)
-        TipMode.NONE -> Money.zero(base.currency)
     }
 }
