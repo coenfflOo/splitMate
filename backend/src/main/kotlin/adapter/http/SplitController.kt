@@ -67,19 +67,29 @@ class SplitController(
             }
 
             "AUTO" -> {
-                val svc = this.exchangeService
-                    ?: throw IllegalArgumentException("AUTO exchange mode is unavailable")
+                try {
+                    val svc = this.exchangeService
+                        ?: throw IllegalStateException("AUTO exchange mode is unavailable")
 
-                val rate = svc.getCadToKrwRate().rate  // BigDecimal
-                val krwAmount = perPersonCad.amount.multiply(rate)
-                    .setScale(2, java.math.RoundingMode.HALF_UP)
+                    val rate = svc.getCadToKrwRate().rate
+                    val krwAmount = perPersonCad.amount.multiply(rate)
+                        .setScale(2, java.math.RoundingMode.HALF_UP)
 
-                val exch = ExchangeOptionResponse(
-                    mode = "AUTO",
-                    rate = rate.stripTrailingZeros().toPlainString(),
-                    targetCurrency = "KRW"
-                )
-                exch to krwAmount.toPlainString()
+                    val exch = ExchangeOptionResponse(
+                        mode = "AUTO",
+                        rate = rate.stripTrailingZeros().toPlainString(),
+                        targetCurrency = "KRW"
+                    )
+                    exch to krwAmount.toPlainString()
+                } catch (e: Exception) {
+                    val body = adapter.http.dto.ErrorResponse(
+                        error = adapter.http.dto.ErrorBody(
+                            code = "EXCHANGE_UNAVAILABLE",
+                            message = "Failed to fetch exchange rate"
+                        )
+                    )
+                    return ResponseEntity.status(502).body(body)
+                }
             }
 
             else -> null to null
