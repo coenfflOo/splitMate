@@ -29,8 +29,21 @@ class Money(
         return of(divided, currency)
     }
 
-    override fun toString(): String =
-        "Money(amount=$amount, currency=$currency)"
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is Money) return false
+        if (currency != other.currency) return false
+        // 10.0 == 10.00 을 같게 보려면 compareTo로 비교
+        return amount.compareTo(other.amount) == 0
+    }
+
+    override fun hashCode(): Int {
+        // 스케일 차이를 줄이기 위해 stripTrailingZeros() 사용
+        val norm = amount.stripTrailingZeros()
+        return 31 * norm.hashCode() + currency.hashCode()
+    }
+
+    override fun toString(): String = "Money(amount=$amount, currency=$currency)"
 
     companion object {
         private const val SCALE = 2

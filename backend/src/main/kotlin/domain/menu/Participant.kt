@@ -1,9 +1,16 @@
 package domain.menu
 
-/**
- * 메뉴별 계산에 참여하는 사람
- */
-data class Participant(
+class Participant(
     val id: String,
     val displayName: String = id
-)
+) {
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is Participant) return false
+        return id == other.id
+    }
+
+    override fun hashCode(): Int = id.hashCode()
+
+    override fun toString(): String = "Participant(id=$id, displayName=$displayName)"
+}
