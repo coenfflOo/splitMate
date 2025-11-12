@@ -55,4 +55,29 @@ class SplitControllerEvenExchangeAutoTest(
             jsonPath("$.perPersonKrw") { value("11000.00") }
         }
     }
+
+    @Test
+    fun `AUTO 환율 실패 시 502와 에러 본문 반환`() {
+        given(exchangeService.getCadToKrwRate())
+            .willAnswer { throw RuntimeException("remote failed") }
+
+        val req = SplitEvenRequest(
+            currency = "CAD",
+            totalAmount = "10.00",
+            taxAmount = "0",
+            tip = TipRequest(mode = "NONE"),
+            peopleCount = 1,
+            exchange = ExchangeOptionRequest(mode = "AUTO")
+        )
+        val json = objectMapper.writeValueAsString(req)
+
+        mockMvc.post("/api/split/even") {
+            contentType = MediaType.APPLICATION_JSON
+            content = json
+        }.andExpect {
+            status { isBadGateway() }
+            jsonPath("$.error.code") { value("EXCHANGE_UNAVAILABLE") }
+        }
+    }
+
 }
