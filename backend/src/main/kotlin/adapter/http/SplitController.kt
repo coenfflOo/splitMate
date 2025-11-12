@@ -66,7 +66,22 @@ class SplitController(
                 exch to perKrw
             }
 
-            // AUTO는 다음 GREEN에서 구현
+            "AUTO" -> {
+                val svc = this.exchangeService
+                    ?: throw IllegalArgumentException("AUTO exchange mode is unavailable")
+
+                val rate = svc.getCadToKrwRate().rate  // BigDecimal
+                val krwAmount = perPersonCad.amount.multiply(rate)
+                    .setScale(2, java.math.RoundingMode.HALF_UP)
+
+                val exch = ExchangeOptionResponse(
+                    mode = "AUTO",
+                    rate = rate.stripTrailingZeros().toPlainString(),
+                    targetCurrency = "KRW"
+                )
+                exch to krwAmount.toPlainString()
+            }
+
             else -> null to null
         }
 
