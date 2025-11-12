@@ -14,7 +14,7 @@ import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.post
 
 
-@SpringBootTest(classes = [AppConfig::class])
+@SpringBootTest(classes = [AppConfig::class,TestExchangeConfig::class])
 @AutoConfigureMockMvc
 class SplitControllerEvenTest(
 
@@ -108,4 +108,29 @@ class SplitControllerEvenTest(
             }
     }
 
+    @Test
+    fun `N분의 1 계산 API - AUTO 환율로 KRW 변환`() {
+        val request = SplitEvenRequest(
+            currency = "CAD",
+            totalAmount = "27.40",
+            taxAmount = "2.60",
+            tip = TipRequest(mode = "PERCENT", percent = 10),
+            peopleCount = 3,
+            exchange = ExchangeOptionRequest(mode = "AUTO")
+        )
+
+        val json = objectMapper.writeValueAsString(request)
+
+        mockMvc.post("/api/split/even") {
+            contentType = MediaType.APPLICATION_JSON
+            content = json
+        }
+            .andExpect {
+                status { isOk() }
+                jsonPath("$.exchange.mode") { value("AUTO") }
+                jsonPath("$.exchange.rate") { value("1,000") }
+                jsonPath("$.exchange.targetCurrency") { value("KRW") }
+                jsonPath("$.perPersonKrw") { value("11,000.00") }
+            }
+    }
 }
