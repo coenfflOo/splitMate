@@ -65,4 +65,47 @@ class SplitControllerEvenTest(
                 jsonPath("$.perPersonKrw") { doesNotExist() }
             }
     }
+
+    @Test
+    fun `N분의 1 계산 API - MANUAL 환율로 KRW 변환`() {
+        // 총액 27.40 + 세금 2.60 = 30.00
+        // 팁 10% => 3.00  → 총 33.00
+        // 인원 3 → 1인당 11.00 CAD
+        // 환율 MANUAL 1000 → 11,000.00 KRW
+
+        val request = SplitEvenRequest(
+            currency = "CAD",
+            totalAmount = "27.40",
+            taxAmount = "2.60",
+            tip = TipRequest(
+                mode = "PERCENT",
+                percent = 10,
+                absolute = null
+            ),
+            peopleCount = 3,
+            exchange = ExchangeOptionRequest(
+                mode = "MANUAL",
+                manualRate = "1000"
+            )
+        )
+
+        val json = objectMapper.writeValueAsString(request)
+
+        mockMvc.post("/api/split/even") {
+            contentType = MediaType.APPLICATION_JSON
+            content = json
+        }
+            .andExpect {
+                status { isOk() }
+                jsonPath("$.currency") { value("CAD") }
+                jsonPath("$.totalAmountCad") { value("33.00") }
+                jsonPath("$.peopleCount") { value(3) }
+                jsonPath("$.perPersonCad") { value("11.00") }
+                jsonPath("$.exchange.mode") { value("MANUAL") }
+                jsonPath("$.exchange.rate") { value("1,000") }
+                jsonPath("$.exchange.targetCurrency") { value("KRW") }
+                jsonPath("$.perPersonKrw") { value("11,000.00") }
+            }
+    }
+
 }
