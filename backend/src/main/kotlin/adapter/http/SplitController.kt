@@ -111,6 +111,7 @@ class SplitController(
 
 
 
+    // src/main/kotlin/adapter/http/SplitController.kt
     @PostMapping("/by-menu")
     fun splitByMenu(@RequestBody request: MenuSplitRequest): ResponseEntity<MenuSplitResponse> {
         val currency = when (request.currency.uppercase()) {
@@ -161,14 +162,73 @@ class SplitController(
             assignments = assignments
         )
 
-        // 4) 환율 처리 (GREEN: NONE만)
-        val exchangeResponse: ExchangeOptionResponse? = when (request.exchange.mode.uppercase()) {
-            "NONE" -> null
-            else   -> null
+        // 4) 환율 처리
+        val mode = request.exchange.mode.uppercase()
+        val (exchangeResponse, perPersonKrwList) = when (mode) {
+            "NONE" -> {
+                null to List(result.shares.size) { null }
+            }
+
+            "MANUAL" -> {
+                val manual = request.exchange.manualRate
+                    ?: throw IllegalArgumentException("manualRate is required when exchange.mode=MANUAL")
+
+                val rate = manual.toBigDecimalOrNull()
+                    ?: throw IllegalArgumentException("manualRate must be a number")
+
+                require(rate > BigDecimal.ZERO) { "manualRate must be > 0" }
+
+                val exch = ExchangeOptionResponse(
+                    mode = "MANUAL",
+                    rate = manual,
+                    targetCurrency = "KRW"
+                )
+
+                val krwList = result.shares.map { share ->
+                    val krwMoney = convert(share.total, rate)
+                    krwMoney.amount.setScale(2, RoundingMode.HALF_UP).toPlainString()
+                }
+
+                exch to krwList
+            }
+
+            "AUTO" -> {
+                try {
+                    val svc = this.exchangeService
+                        ?: throw IllegalStateException("AUTO exchange mode is unavailable")
+
+                    val rate = svc.getCadToKrwRate().rate
+
+                    val exch = ExchangeOptionResponse(
+                        mode = "AUTO",
+                        rate = rate.stripTrailingZeros().toPlainString(),
+                        targetCurrency = "KRW"
+                    )
+
+                    val krwList = result.shares.map { share ->
+                        val krwMoney = convert(share.total, rate)
+                        krwMoney.amount.setScale(2, RoundingMode.HALF_UP).toPlainString()
+                    }
+
+                    exch to krwList
+                } catch (e: Exception) {
+                    val body = ErrorResponse(
+                        error = ErrorBody(
+                            code = "EXCHANGE_UNAVAILABLE",
+                            message = "Failed to fetch exchange rate"
+                        )
+                    )
+                    return ResponseEntity.status(502).body(body) as ResponseEntity<MenuSplitResponse>
+                }
+            }
+
+            else -> {
+                null to List(result.shares.size) { null }
+            }
         }
 
         // 5) 응답 매핑
-        val participantsResp = result.shares.map { share ->
+        val participantsResp = result.shares.mapIndexed { index, share ->
             ParticipantShareResponse(
                 id = share.participant.id,
                 name = share.participant.displayName,
@@ -176,7 +236,7 @@ class SplitController(
                 taxShareCad = formatMoneyPlain(share.taxShare),
                 tipShareCad = formatMoneyPlain(share.tipShare),
                 totalCad = formatMoneyPlain(share.total),
-                totalKrw = null
+                totalKrw = perPersonKrwList[index]
             )
         }
 
