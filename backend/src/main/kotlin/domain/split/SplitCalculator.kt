@@ -2,6 +2,7 @@ package domain.split
 
 import domain.menu.MenuAssignment
 import domain.menu.Participant
+import domain.money.Currency
 import domain.money.Money
 import domain.receipt.Receipt
 import java.math.BigDecimal
@@ -62,14 +63,13 @@ object SplitCalculator {
 
         val total = Money.of(totalAmount, currency)
 
-        // baseAmount가 0이면 세금/팁은 모두 0이어야 함
         val totalBaseAmount = base.amount
         require(totalBaseAmount >= BigDecimal.ZERO) {
             "base amount must be >= 0"
         }
 
-        // 3. 사람별 비례 분배
-        val shares = subtotals.entries.map { (participant, subtotalMoney) ->
+        // 3. 사람별 비례 분배 (raw shares)
+        val rawShares = subtotals.entries.map { (participant, subtotalMoney) ->
             val subtotalAmount = subtotalMoney.amount
 
             val ratio =
@@ -101,13 +101,88 @@ object SplitCalculator {
             )
         }
 
+        val adjustedShares = adjustSharesForRounding(
+            total = total,
+            shares = rawShares,
+            currency = currency
+        )
+
         return MenuSplitResult(
             total = total,
-            shares = shares
+            shares = adjustedShares
         )
     }
 
     private fun validatePeopleCount(peopleCount: Int) {
         require(peopleCount > 0) { "peopleCount must be > 0" }
+    }
+
+    /**
+     * rounding으로 인해 sum(shares.total) != total 인 경우,
+     * 몇 센트 정도를 한 사람(들)의 tipShare에 더하거나 빼서 총합을 맞춘다.
+     */
+    private fun adjustSharesForRounding(
+        total: Money,
+        shares: List<PerPersonShare>,
+        currency: Currency
+    ): List<PerPersonShare> {
+        if (shares.isEmpty()) return shares
+
+        val totalExpected = total.amount.setScale(2, RoundingMode.HALF_UP)
+
+        val totalActual = shares
+            .map { it.total.amount }
+            .fold(BigDecimal.ZERO, BigDecimal::add)
+            .setScale(2, RoundingMode.HALF_UP)
+
+        var diff = totalExpected.subtract(totalActual)
+
+        // 차이가 없으면 그대로 반환
+        if (diff.compareTo(BigDecimal.ZERO) == 0) {
+            return shares
+        }
+
+        // diff를 "센트" 단위로 변환 (예: 0.02 -> 2, -0.01 -> -1)
+        var centDiff = diff
+            .multiply(BigDecimal("100"))
+            .setScale(0, RoundingMode.HALF_UP)
+            .toInt()
+
+        if (centDiff == 0) {
+            return shares
+        }
+
+        val adjusted = shares.toMutableList()
+
+        // 가장 부담이 큰 사람부터 보정하는 정책 (변동 비율이 가장 작도록)
+        val sortedIndexes = shares
+            .indices
+            .sortedByDescending { shares[it].total.amount }
+
+        var idx = 0
+        val sign = if (centDiff > 0) 1 else -1
+
+        while (centDiff != 0) {
+            val targetIndex = sortedIndexes[idx % sortedIndexes.size]
+            val target = adjusted[targetIndex]
+
+            val delta = BigDecimal(sign).divide(BigDecimal("100"))
+
+            val deltaMoney = Money.of(delta, currency)
+
+            // tipShare 쪽에 보정값을 반영하고, total도 같이 조정
+            val newTipShare = target.tipShare + deltaMoney
+            val newTotal = target.total + deltaMoney
+
+            adjusted[targetIndex] = target.copy(
+                tipShare = newTipShare,
+                total = newTotal
+            )
+
+            centDiff -= sign
+            idx += 1
+        }
+
+        return adjusted
     }
 }
