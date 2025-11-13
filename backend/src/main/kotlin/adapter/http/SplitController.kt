@@ -2,6 +2,9 @@ package adapter.http
 
 import adapter.http.dto.*
 import domain.fx.ExchangeService
+import domain.menu.MenuAssignment
+import domain.menu.MenuItem
+import domain.menu.Participant
 import domain.money.Currency
 import domain.money.Money
 import domain.receipt.Receipt
@@ -110,15 +113,81 @@ class SplitController(
 
     @PostMapping("/by-menu")
     fun splitByMenu(@RequestBody request: MenuSplitRequest): ResponseEntity<MenuSplitResponse> {
-        return ResponseEntity.status(501)
-            .body(
-                MenuSplitResponse(
-                    currency = request.currency,
-                    totalAmountCad = "0.00",
-                    exchange = null,
-                    participants = emptyList()
-                )
+        val currency = when (request.currency.uppercase()) {
+            "CAD" -> Currency.CAD
+            "KRW" -> Currency.KRW
+            else  -> Currency.CAD
+        }
+
+        // 1) 도메인 객체 변환
+        val itemsById: Map<String, MenuItem> = request.items.associate { mi ->
+            mi.id to MenuItem(
+                id = mi.id,
+                name = mi.name,
+                price = Money.of(mi.price, currency)
             )
+        }
+
+        val participantsById: Map<String, Participant> = request.participants.associate { p ->
+            p.id to Participant(id = p.id, displayName = p.name)
+        }
+
+        val assignments: List<MenuAssignment> = request.assignments.map { a ->
+            val menu = itemsById[a.menuId]
+                ?: throw IllegalArgumentException("unknown menuId: ${a.menuId}")
+            val ps = a.participantIds.map { pid ->
+                participantsById[pid] ?: throw IllegalArgumentException("unknown participantId: $pid")
+            }
+            MenuAssignment(menuItem = menu, participants = ps)
+        }
+
+        // 2) 영수증: baseAmount = 모든 메뉴 합
+        val baseAmount = request.items
+            .map { Money.of(it.price, currency) }
+            .fold(Money.zero(currency)) { acc, m -> acc + m }
+
+        val tax = Tax(Money.of(request.taxAmount, currency))
+        val tip = toDomainTip(request.tip, currency)
+
+        val receipt = Receipt(
+            baseAmount = baseAmount,
+            tax = tax,
+            tip = tip
+        )
+
+        // 3) 분배 계산
+        val result = SplitCalculator.splitByMenu(
+            receipt = receipt,
+            assignments = assignments
+        )
+
+        // 4) 환율 처리 (GREEN: NONE만)
+        val exchangeResponse: ExchangeOptionResponse? = when (request.exchange.mode.uppercase()) {
+            "NONE" -> null
+            else   -> null
+        }
+
+        // 5) 응답 매핑
+        val participantsResp = result.shares.map { share ->
+            ParticipantShareResponse(
+                id = share.participant.id,
+                name = share.participant.displayName,
+                subtotalCad = formatMoneyPlain(share.subtotal),
+                taxShareCad = formatMoneyPlain(share.taxShare),
+                tipShareCad = formatMoneyPlain(share.tipShare),
+                totalCad = formatMoneyPlain(share.total),
+                totalKrw = null
+            )
+        }
+
+        val resp = MenuSplitResponse(
+            currency = "CAD",
+            totalAmountCad = formatMoneyPlain(result.total),
+            exchange = exchangeResponse,
+            participants = participantsResp
+        )
+
+        return ResponseEntity.ok(resp)
     }
 
     @GetMapping("/health")
