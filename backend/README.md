@@ -335,7 +335,7 @@ com.splitmate
 **테스트**
 
 - [ ]  `MenuItem` 생성 시 음수/0 가격을 허용하지 않는지 검증한다.
-- [ ]  `Participant`가 equals/hashCode 기준으로 잘 비교되는지 검증한다. (id 기반)
+- [x]  `Participant`가 equals/hashCode 기준으로 잘 비교되는지 검증한다. (id 기반)
 
 ---
 
@@ -362,13 +362,13 @@ com.splitmate
 - [x]  `Receipt`의 `baseAmount + tax + tip`으로 전체 금액을 계산한다.
 - [x]  각 사람의 `subtotal / baseAmount` 비율에 따라 세금/팁을 비례 분배한다.
 - [x]  반올림 정책은 `Money`의 SCALE(2), HALF_UP을 따른다.
-- [ ]  세금/팁 분배로 인해 생기는 1~2 cent 오차를 한 사람에게 몰아서 보정하는 정책을 정한다. (선택)
+- [x]  세금/팁 분배로 인해 생기는 1~2 cent 오차를 한 사람에게 몰아서 보정하는 정책을 정한다.
 
 **테스트**
 
 - [x]  “각자 메뉴만 있는 경우” 사람별 총액이 기대값과 일치하는지 테스트.
 - [x]  “모두가 공유한 메뉴 1개”인 경우, 완전히 균등하게 나누어지는지 테스트.
-- [ ]  “혼자 먹은 메뉴 + 공유 메뉴 혼합” 케이스에서 비율과 금액이 맞는지 테스트.
+- [x]  “혼자 먹은 메뉴 + 공유 메뉴 혼합” 케이스에서 비율과 금액이 맞는지 테스트.
 - [ ]  subtotal 합과 baseAmount가 크게 다를 때(입력 실수)는 예외 or 로그로 처리하는 정책을 테스트. (선택)
 
 ---
@@ -412,15 +412,15 @@ com.splitmate
 - [x]  요청/응답 DTO 정의 (`adapter.http.dto`)
     - `SplitEvenRequest`, `SplitEvenResponse`
     - `MenuSplitRequest`, `MenuSplitResponse`
-- [ ]  DTO → 도메인 (`Receipt`, `MenuItem`, `Participant`, `MenuAssignment`) 변환 로직
-- [ ]  도메인 결과(`SplitResult`, `MenuSplitResult`) → 응답 DTO 변환
+- [x]  DTO → 도메인 (`Receipt`, `MenuItem`, `Participant`, `MenuAssignment`) 변환 로직
+- [x]  도메인 결과(`SplitResult`, `MenuSplitResult`) → 응답 DTO 변환
 
 **테스트**
 
-- [ ]  컨트롤러 단위 테스트
+- [x]  컨트롤러 단위 테스트
     - 유효한 요청 → 기대한 JSON 응답이 나오는지
 - [ ]  잘못된 입력(음수 금액, 잘못된 통화, 빈 참가자 등)에 대한 에러 응답 형식 테스트
-- [ ]  메뉴별 요청에서 세금/팁/환율이 반영된 금액이 정확한지 통합 테스트 1~2개
+- [x]  메뉴별 요청에서 세금/팁/환율이 반영된 금액이 정확한지 통합 테스트 1~2개
 
 ---
 ## 🚦 구현 우선순위 (MVP 기준)
