@@ -2,13 +2,16 @@
 package adapter.http
 
 import adapter.http.dto.*
+import application.group.GroupConversationService
 import com.fasterxml.jackson.databind.ObjectMapper
 import config.AppConfig
+import domain.fx.ExchangeService
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.http.MediaType
+import org.springframework.test.context.bean.override.mockito.MockitoBean
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.post
 
@@ -18,6 +21,12 @@ class SplitControllerByMenuTest(
     @Autowired private val mockMvc: MockMvc,
     @Autowired private val objectMapper: ObjectMapper
 ) {
+
+    @MockitoBean
+    lateinit var exchangeService: ExchangeService
+
+    @MockitoBean
+    private lateinit var groupConversationService: GroupConversationService
 
     @Test
     fun `메뉴별 계산 - 혼자 먹은 메뉴와 공유 메뉴 혼합 - 퍼센트 팁, 환율 없음`() {

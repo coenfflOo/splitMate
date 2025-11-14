@@ -3,6 +3,7 @@ package adapter.http
 import adapter.http.dto.ExchangeOptionRequest
 import adapter.http.dto.SplitEvenRequest
 import adapter.http.dto.TipRequest
+import application.group.GroupConversationService
 import com.fasterxml.jackson.databind.ObjectMapper
 import config.AppConfig
 import domain.fx.ExchangeRate
@@ -26,6 +27,9 @@ class SplitControllerEvenExchangeAutoTest(
     @Autowired private val mockMvc: MockMvc,
     @Autowired private val objectMapper: ObjectMapper
 ) {
+
+    @MockitoBean
+    private lateinit var groupConversationService: GroupConversationService
 
     @MockitoBean
     lateinit var exchangeService: ExchangeService
