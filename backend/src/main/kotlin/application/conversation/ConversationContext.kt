@@ -1,6 +1,6 @@
-package application.session
+package application.conversation
 
-import application.conversation.ConversationStep
+import domain.conversation.ConversationStep
 import domain.money.Money
 import domain.receipt.TipMode
 import java.math.BigDecimal
