@@ -2,7 +2,7 @@ package adapter.console
 
 import adapter.fx.HttpExchangeRateProvider
 import application.conversation.ConversationEngine
-import application.session.ConversationContext
+import application.conversation.ConversationContext
 import domain.fx.ExchangeService
 
 class ConsoleApp(

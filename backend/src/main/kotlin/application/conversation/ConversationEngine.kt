@@ -1,7 +1,8 @@
 package application.conversation
 
-import application.session.ConversationContext
-import domain.fx.ExchangeRate
+import application.conversation.ConversationContext
+import domain.conversation.ConversationOutput
+import domain.conversation.ConversationStep
 import domain.fx.ExchangeService
 import domain.money.Currency
 import domain.money.Money
@@ -175,7 +176,7 @@ class ConversationEngine(
                 ConversationOutput(
                     message = "분배 방식을 선택해주세요. 1) N분의 1",
                     nextStep = ConversationStep.ASK_SPLIT_MODE,
-                    context = context.copy(tipAbsolute = domain.money.Money.of(v, domain.money.Currency.CAD))
+                    context = context.copy(tipAbsolute = Money.of(v, Currency.CAD))
                 )
             }
             TipMode.NONE, null -> {

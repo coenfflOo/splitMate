@@ -1,5 +1,6 @@
 package application.conversation
 
+import domain.conversation.ConversationStep
 import domain.fx.ExchangeRate
 import domain.fx.ExchangeRateProvider
 import domain.fx.ExchangeService

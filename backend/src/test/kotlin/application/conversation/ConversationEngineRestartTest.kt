@@ -1,6 +1,6 @@
 package application.conversation
 
-import application.session.ConversationContext
+import domain.conversation.ConversationStep
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
