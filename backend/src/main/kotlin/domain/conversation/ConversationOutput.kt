@@ -1,4 +1,4 @@
-package application.conversation
+package domain.conversation
 
 import application.session.ConversationContext
 
