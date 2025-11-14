@@ -1,4 +1,3 @@
-// src/main/kotlin/application/group/GroupConversationService.kt
 package application.group
 
 import application.conversation.ConversationContext
@@ -13,7 +12,6 @@ class GroupConversationService(
     private val rooms: MutableMap<RoomId, RoomState> = ConcurrentHashMap()
 
     fun createRoom(roomId: RoomId, creator: MemberId): RoomState {
-        // 이미 존재하면 그대로 반환 (정책은 필요에 따라 변경)
         val existing = rooms[roomId]
         if (existing != null) {
             return existing
@@ -31,9 +29,8 @@ class GroupConversationService(
 
     fun joinRoom(roomId: RoomId, memberId: MemberId): RoomState {
         val current = rooms[roomId]
-            ?: throw IllegalArgumentException("Room not found: $roomId")
+            ?: throw IllegalArgumentException("Room not found: ${roomId.value}")
 
-        // 이미 멤버로 있으면 그대로 반환
         if (memberId in current.members) {
             return current
         }
@@ -47,13 +44,10 @@ class GroupConversationService(
 
     fun handleMessage(roomId: RoomId, memberId: MemberId, input: String): RoomState {
         val current = rooms[roomId]
-            ?: throw IllegalArgumentException("Room not found: $roomId")
+            ?: throw IllegalArgumentException("Room not found: ${roomId.value}")
 
-        // 필요하다면 "member가 방에 없으면 예외" 같은 정책도 추가 가능
         if (memberId !in current.members) {
-            // 여기서는 간단히 자동 join 시킬 수도 있고, 예외를 던질 수도 있음
-            // 일단 예외로 처리
-            throw IllegalArgumentException("Member $memberId is not in room $roomId")
+            throw IllegalArgumentException("Member ${memberId.value} is not in room ${roomId.value}")
         }
 
         val last = current.lastOutput
