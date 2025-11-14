@@ -43,8 +43,12 @@ com.splitmate
  ├─ application        # 유스케이스 / 흐름 조립 (도메인 + adapter 연결)
  │   ├─ conversation
  │   │    └─ ConversationEngine.kt
- │   └─ session
- │        └─ ConversationContext.kt
+ │   ├─ session
+ │   │    └─ ConversationContext.kt
+ │   └─ group
+ │        ├─ RoomService.kt
+ │        ├─ RoomRepository.kt
+ │        └─ GroupConversationService.kt
  │
  ├─ domain            # 순수 도메인 (비즈니스 규칙, 값/엔티티/서비스)
  │   ├─ money
@@ -90,9 +94,10 @@ com.splitmate
  │       │    ├─ SplitEvenResponse.kt
  │       │    ├─ MenuSplitRequest.kt
  │       │    └─ MenuSplitResponse.kt
- │       └─ SplitHttpHandler.kt   # (나중에 Controller로 연결)
- └─ config            # 앱 시작점, 의존성 조립
-      └─ AppConfig.kt   (혹은 Main.kt 에서 직접 조립)
+ │       ├─ SplitHttpHandler.kt   
+ │       └─ GroupController.kt
+ └─ config            
+      └─ AppConfig.kt   
 ```
 
 - **domain**: 순수 계산/비즈니스 규칙만 포함 (I/O 없음)
@@ -421,6 +426,152 @@ com.splitmate
     - 유효한 요청 → 기대한 JSON 응답이 나오는지
 - [ ]  잘못된 입력(음수 금액, 잘못된 통화, 빈 참가자 등)에 대한 에러 응답 형식 테스트
 - [x]  메뉴별 요청에서 세금/팁/환율이 반영된 금액이 정확한지 통합 테스트 1~2개
+
+---
+### 7. Room / Member / 상태 모델링
+
+**구현**
+
+- [ ]  `RoomId`, `MemberId` 값 타입 정의
+    - `@JvmInline value class RoomId(val value: String)`
+    - `@JvmInline value class MemberId(val value: String)`
+- [ ]  방 상태를 표현하는 `RoomStatus` enum 정의 (`OPEN`, `CLOSED` 등)
+- [ ]  한 방 전체를 표현하는 `RoomState` 정의
+    - 필드 예시:
+        - `id: RoomId`
+        - `status: RoomStatus`
+        - `members: Set<MemberId>`
+        - `splitMode: SplitMode?`
+        - `conversationContext: ConversationContext?`
+        - `createdAt`, `updatedAt`
+
+**테스트**
+
+- [ ]  `RoomState` 기본 생성 시 `status = OPEN`, `members` 비어 있는지 확인
+- [ ]  `CLOSED` 상태에서 추가 입력을 막을 수 있도록 하는 정책을 테스트 (ex. 나중에 Service 레벨에서 사용)
+
+---
+
+### 8. 인메모리 Room 저장소 (`RoomRepository`)
+
+**구현**
+
+- [ ]  `RoomRepository` 인터페이스 정의
+    - `create(room: RoomState): RoomState`
+    - `findById(id: RoomId): RoomState?`
+    - `save(room: RoomState): RoomState`
+    - `delete(id: RoomId)`
+- [ ]  `InMemoryRoomRepository` 구현
+    - 내부에 `ConcurrentHashMap<String, RoomState>` 사용
+    - `save()` 시 `updatedAt` 갱신
+
+**테스트**
+
+- [ ]  `create()` 호출 후 `findById()` 로 같은 방을 조회할 수 있는지 테스트
+- [ ]  `save()` 호출 시 필드 변경 내용이 반영되는지 테스트
+- [ ]  `delete()` 후 `findById()` 가 `null` 을 반환하는지 테스트
+
+---
+
+### 9. RoomService – 방 생성/참가/종료 유스케이스
+
+**구현**
+
+- [ ]  `RoomService` 생성 (`RoomRepository` 의존)
+- [ ]  `createRoom()`
+    - 랜덤 `RoomId` 생성 (UUID 등)
+    - 빈 멤버 / `OPEN` 상태의 `RoomState` 생성 후 저장
+- [ ]  `joinRoom(roomId, memberId)`
+    - 방이 존재하는지 확인
+    - `CLOSED` 방이면 예외
+    - `members` set 에 `memberId` 추가 후 저장
+- [ ]  `leaveRoom(roomId, memberId)`
+    - `members` set 에서 제거 후 저장
+- [ ]  `closeRoom(roomId)`
+    - `status` 를 `CLOSED` 로 바꾸고 저장
+- [ ]  `getRoom(roomId)` 로 현재 상태 조회
+
+**테스트**
+
+- [ ]  `createRoom()` → `getRoom()` 으로 조회 시 `OPEN` 상태인지 테스트
+- [ ]  `joinRoom()` 여러 번 호출 시 `members` 에 중복 없이 쌓이는지 테스트
+- [ ]  `closeRoom()` 후 `joinRoom()` 을 호출하면 예외가 나는지 테스트
+- [ ]  `leaveRoom()` 호출 시 멤버가 제거되는지 테스트
+
+---
+
+### 10. GroupConversationService – Room + ConversationEngine 연결
+
+**구현**
+
+- [ ]  `GroupConversationService` 정의
+    - 의존성: `RoomRepository`, `ConversationEngine`
+- [ ]  `startConversation(roomId)`
+    - `RoomState` 가 `OPEN` 인지 확인
+    - `ConversationEngine.start()` 호출
+    - 반환된 `ConversationOutput.context` 를 `RoomState.conversationContext` 에 저장
+    - 업데이트한 Room 저장
+- [ ]  `handleInput(roomId, memberId, step, userInput)`
+    - 방이 존재하고 `OPEN` 인지 확인
+    - `RoomState.conversationContext` 가 존재하는지 검증
+    - `ConversationEngine.handle(step, input, context)` 호출
+    - 결과의 `context` 를 다시 `RoomState` 에 저장
+    - `ConversationOutput` 반환
+
+**테스트**
+
+- [ ]  `startConversation()` 호출 후 해당 방의 `conversationContext` 가 초기화되는지 테스트
+
+  (테스트용 fake/spy `ConversationEngine` 사용 or 단순 필드 체크)
+
+- [ ]  `handleInput()` 호출 시 `ConversationEngine.handle()` 이 호출되고, 업데이트된 컨텍스트가 Room에 저장되는지 테스트
+- [ ]  `conversationContext` 가 없는 방에서 `handleInput()` 호출 시 예외가 나는지 테스트
+- [ ]  `CLOSED` 방에서 `startConversation`/`handleInput` 호출 시 예외 나는지 테스트
+
+---
+
+### 11. GROUP HTTP API – Room 관리 & 메시지 전달
+
+**구현**
+
+- [ ]  `adapter.http.GroupController` 생성
+- [ ]  `POST /api/group/rooms`
+    - `RoomService.createRoom()` 호출
+    - `{"roomId": "<id>"}` 형태로 응답
+- [ ]  `POST /api/group/rooms/{roomId}/join?memberId=...`
+    - `RoomService.joinRoom()` 호출
+    - 200 OK 반환
+- [ ]  `POST /api/group/rooms/{roomId}/start`
+    - `GroupConversationService.startConversation()` 호출
+    - `ConversationOutput` 를 HTTP-friendly DTO로 변환하여 반환
+- [ ]  `POST /api/group/rooms/{roomId}/message`
+    - 요청 DTO: `{ memberId, step, input }`
+    - `GroupConversationService.handleInput()` 호출
+    - 응답: 다음 질문/메시지/nextStep 등을 포함한 DTO
+- [ ]  (선택) `GET /api/group/rooms/{roomId}`
+    - 방 상태, 멤버 목록, 현재 단계 등을 조회
+
+**테스트**
+
+- [ ]  `POST /api/group/rooms` 호출 → 200 OK와 `roomId` 필드가 내려오는지 MockMvc 로 테스트
+- [ ]  `join → start → message` 까지 이어지는 happy-path 시나리오 1개 작성
+- [ ]  존재하지 않는 `roomId` 로 호출 시 4xx 에러/메시지 형식이 일관적인지 테스트
+- [ ]  `CLOSED` 상태에서 message 를 보내면 적절한 에러가 나는지 테스트
+
+---
+
+### 12. 에러 처리 & 만료 정책
+
+**구현**
+
+- [ ]  `RoomService` / `GroupConversationService` 에서 던지는 예외를 HTTP 에러로 매핑할 `@ControllerAdvice` 추가
+    - 예: `IllegalArgumentException` → 400, `IllegalStateException` → 409 등
+- [ ]  오래된 방 자동 정리 정책 설계 (예: `updatedAt` 기준 N분 이상 지난 방 삭제 – 이후 구현)
+
+**테스트**
+
+- [ ]  잘못된 `roomId`, `memberId` 등에서 에러 응답 JSON 형식 (`ErrorResponse`) 이 유지되는지 테스트
+- [ ]  만료 정책을 구현한다면, “가짜 시간” 사용 or 작은 TTL로 Room 정리 테스트
 
 ---
 ## 🚦 구현 우선순위 (MVP 기준)
