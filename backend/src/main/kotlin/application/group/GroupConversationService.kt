@@ -44,15 +44,18 @@ class GroupConversationService(
 
     fun handleMessage(roomId: RoomId, memberId: MemberId, input: String): RoomState {
         val current = rooms[roomId]
-            ?: throw RoomNotFoundException(roomId)
+            ?: throw RoomNotFoundException(roomId) // ✅ 진짜로 방이 없을 때만
 
         if (memberId !in current.members) {
-            throw RoomNotFoundException(roomId)
+            // ✅ 여기서는 방은 있으나 멤버가 아닐 때 → IllegalArgumentException
+            throw IllegalArgumentException(
+                "Member ${memberId.value} is not in room ${roomId.value}"
+            )
         }
 
         val last = current.lastOutput
         val context = last.context as? ConversationContext
-            ?: throw RoomNotFoundException(roomId)
+            ?: throw IllegalStateException("Context missing for room ${roomId.value}")
 
         val newOutput = conversationFlow.handle(
             step = last.nextStep,
