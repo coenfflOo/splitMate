@@ -5,17 +5,20 @@ import adapter.http.dto.GroupMessageRequest
 import application.group.GroupConversationService
 import application.group.MemberId
 import application.group.RoomId
+import application.group.RoomNotFoundException
 import com.fasterxml.jackson.databind.ObjectMapper
 import config.AppConfig
 import org.junit.jupiter.api.Test
 import org.mockito.BDDMockito.given
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.http.MediaType
 import org.springframework.test.context.bean.override.mockito.MockitoBean
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.post
+import org.springframework.test.web.servlet.get
 
 @SpringBootTest(classes = [AppConfig::class])
 @AutoConfigureMockMvc
@@ -86,6 +89,99 @@ class GroupControllerErrorTest(
             status { isBadRequest() }
             jsonPath("$.error.code") { value("INVALID_INPUT") }
             jsonPath("$.error.message") { value("Member intruder is not in room room-1") }
+        }
+    }
+
+    @Test
+    fun `GET room - room not found returns 404`() {
+        mockMvc.get("/api/group/rooms/no-such-room")
+            .andExpect {
+                status { isNotFound() }
+                jsonPath("$.error.code") { value("ROOM_NOT_FOUND") }
+            }
+    }
+
+    @Test
+    fun `POST joinRoom - room not found returns 404`() {
+        // given
+        val roomId = RoomId("no-such-room")
+        val memberId = MemberId("member-1")
+
+        given(groupConversationService.joinRoom(roomId, memberId))
+            .willThrow(RoomNotFoundException(roomId))
+
+        // when & then
+        mockMvc.post("/api/group/rooms/${roomId.value}/join") {
+            contentType = MediaType.APPLICATION_JSON
+            content = """
+                { "memberId": "${memberId.value}" }
+            """.trimIndent()
+        }.andExpect {
+            status { isNotFound() }
+            jsonPath("$.error.code") { value("ROOM_NOT_FOUND") }
+        }
+    }
+
+    @Test
+    fun `POST messages - room not found returns 404`() {
+        val roomId = RoomId("no-such-room")
+        val memberId = MemberId("member-1")
+
+        given(groupConversationService.handleMessage(roomId, memberId, "hi"))
+            .willThrow(RoomNotFoundException(roomId))
+
+        mockMvc.post("/api/group/rooms/${roomId.value}/messages") {
+            contentType = MediaType.APPLICATION_JSON
+            content = """
+                { "memberId": "${memberId.value}", "input": "hi" }
+            """.trimIndent()
+        }.andExpect {
+            status { isNotFound() }
+            jsonPath("$.error.code") { value("ROOM_NOT_FOUND") }
+        }
+    }
+
+    @Test
+    fun `POST messages - member not in room returns 400`() {
+        val roomId = RoomId("room-1")
+        val memberId = MemberId("stranger")
+
+        given(groupConversationService.handleMessage(roomId, memberId, "hi"))
+            .willThrow(IllegalArgumentException("Member not in room"))
+
+        mockMvc.post("/api/group/rooms/${roomId.value}/messages") {
+            contentType = MediaType.APPLICATION_JSON
+            content = """
+                { "memberId": "${memberId.value}", "input": "hi" }
+            """.trimIndent()
+        }.andExpect {
+            status { isBadRequest() }
+            jsonPath("$.error.code") { value("INVALID_INPUT") }
+        }
+    }
+
+    @Test
+    fun `POST messages - context missing returns 409`() {
+        // given
+        val roomId = RoomId("r2")
+        val memberId = MemberId("owner")
+
+        given(
+            groupConversationService.handleMessage(roomId, memberId, "hello")
+        ).willThrow(
+            IllegalStateException("Context missing")
+        )
+
+        val body = """{ "memberId": "owner", "input": "hello" }"""
+
+        // when & then
+        mockMvc.post("/api/group/rooms/${roomId.value}/messages") {
+            contentType = MediaType.APPLICATION_JSON
+            content = body
+        }.andExpect {
+            status { isConflict() }
+            jsonPath("$.error.code") { value("CONTEXT_MISSING") }
+            jsonPath("$.error.message") { value("Context missing") }
         }
     }
 }
