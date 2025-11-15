@@ -29,7 +29,7 @@ class GroupConversationService(
 
     fun joinRoom(roomId: RoomId, memberId: MemberId): RoomState {
         val current = rooms[roomId]
-            ?: throw IllegalArgumentException("Room not found: ${roomId.value}")
+            ?: throw RoomNotFoundException(roomId)
 
         if (memberId in current.members) {
             return current
@@ -44,15 +44,15 @@ class GroupConversationService(
 
     fun handleMessage(roomId: RoomId, memberId: MemberId, input: String): RoomState {
         val current = rooms[roomId]
-            ?: throw IllegalArgumentException("Room not found: ${roomId.value}")
+            ?: throw RoomNotFoundException(roomId)
 
         if (memberId !in current.members) {
-            throw IllegalArgumentException("Member ${memberId.value} is not in room ${roomId.value}")
+            throw RoomNotFoundException(roomId)
         }
 
         val last = current.lastOutput
         val context = last.context as? ConversationContext
-            ?: throw IllegalStateException("ConversationContext is required in lastOutput")
+            ?: throw RoomNotFoundException(roomId)
 
         val newOutput = conversationFlow.handle(
             step = last.nextStep,
