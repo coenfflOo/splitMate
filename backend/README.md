@@ -42,12 +42,14 @@
 com.splitmate
  ├─ application        # 유스케이스 / 흐름 조립 (도메인 + adapter 연결)
  │   ├─ conversation
- │   │    └─ ConversationEngine.kt
- │   ├─ session
- │   │    └─ ConversationContext.kt
+ │   │    ├─ ConversationContext.kt
+ │   │    ├─ ConversationEngine.kt
+ │   │    └─ ConversationFlow.kt
  │   └─ group
- │        ├─ RoomService.kt
- │        ├─ RoomRepository.kt
+ │        ├─ MemberId.kt
+ │        ├─ RoomId.kt
+ │        ├─ RoomState.kt
+ │        ├─ RoomNotFoundException.kt
  │        └─ GroupConversationService.kt
  │
  ├─ domain            # 순수 도메인 (비즈니스 규칙, 값/엔티티/서비스)
@@ -58,12 +60,17 @@ com.splitmate
  │   ├─ receipt
  │   │    ├─ Receipt.kt
  │   │    ├─ Tax.kt
- │   │    └─ Tip.kt
+ │   │    ├─ Tip.kt
+ │   │    └─ TipMode.kt
  │   │
  │   ├─ menu              
  │   │    ├─ MenuItem.kt          
  │   │    ├─ Participant.kt       
- │   │    └─ MenuAssignment.kt    
+ │   │    └─ MenuAssignment.kt
+ │   │
+ │   ├─ money             
+ │   │    ├─ Currency.kt
+ │   │    └─ Money.kt
  │   │
  │   ├─ split             
  │   │    ├─ SplitMode.kt         
@@ -84,18 +91,28 @@ com.splitmate
  ├─ adapter           # 헥사고날의 adapter 영역 (입출력, 외부 시스템)
  │   ├─ console
  │   │    ├─ ConsoleApp.kt
- │   │    └─ ConsoleIO.kt
+ │   │    ├─ ConsoleIO.kt
+ │   │    └─ StdConsoleIO.kt
  │   │
  │   ├─ fx
  │   │    └─ HttpExchangeRateProvider.kt
- │   └─ http        
- │       ├─ dto
- │       │    ├─ SplitEvenRequest.kt
- │       │    ├─ SplitEvenResponse.kt
- │       │    ├─ MenuSplitRequest.kt
- │       │    └─ MenuSplitResponse.kt
- │       ├─ SplitHttpHandler.kt   
- │       └─ GroupController.kt
+ │   ├─ http        
+ │   │   ├─ dto
+ │   │   │    ├─ ErrorDtos.kt
+ │   │   │    ├─ ExchangeDtos.kt
+ │   │   │    ├─ GroupCreateRoomRequest.kt
+ │   │   │    ├─ GroupJoinRoomRequest.kt
+ │   │   │    ├─ GroupMessageRequest.kt
+ │   │   │    ├─ GroupRoomResponse.kt
+ │   │   │    ├─ MenuSplitDtos.kt
+ │   │   │    ├─ SplitEvenDtos.kt
+ │   │   │    └─ TipDtos.kt
+ │   │   ├─ SplitHttpHandler.kt   
+ │   │   ├─ GlobalExceptionHandler
+ │   │   └─ GroupController.kt
+ │   └─ websocket
+ │        ├─ WebSocketConfig.kt
+ │        └─ GroupWebSocketController.kt
  └─ config            
       └─ AppConfig.kt   
 ```
@@ -487,29 +504,69 @@ com.splitmate
 - [x] `POST /api/group/rooms/{roomId}/join` → 멤버 목록이 늘어나는지 MockMvc 테스트
 - [x] `POST /api/group/rooms/{roomId}/messages` → 입력에 따라 `message`, `nextStep` 이 변하는지 테스트
 - [x] `GET /api/group/rooms/{roomId}` → 기존 방 상태 스냅샷 조회 테스트
-- [ ] 존재하지 않는 `roomId` / 미가입 멤버 등에서 4xx 에러/메시지 형식이 일관적인지 테스트 보완
+- [x] 존재하지 않는 `roomId` / 미가입 멤버 등에서 4xx 에러/메시지 형식이 일관적인지 테스트 보완
 
 ---
 
-### 10. WebSocket 기반 GROUP 실시간 채팅
+# 🗒️ Feature List 3차 – WebSocket 기반 GROUP 채팅
+
+### 1. WebSocket/STOMP 기본 설정
 
 **구현**
 
-- [ ] Spring WebSocket + STOMP 설정
-    - `/ws` 엔드포인트
-    - `applicationDestinationPrefixes` 예: `/app`
-    - 구독용 prefix 예: `/topic`
-- [ ] 클라이언트 → 서버
-    - `/app/group/{roomId}/messages` 로 `{ memberId, input }` 전송
-- [ ] 서버 → 클라이언트 (브로드캐스트)
-    - `/topic/group/{roomId}` 로 `GroupRoomResponse` 브로드캐스트
-- [ ] (선택) 멤버 join/leave 이벤트도 동일 topic 으로 공지
+- [ ]  Spring WebSocket + STOMP 설정 클래스 추가
+- [ ]  CORS / origin 설정 (프론트엔드 도메인 허용)
 
 **테스트**
 
-- [ ] STOMP 통합 테스트: subscribe → send → receive 흐름 검증
-- [ ] 여러 클라이언트가 같은 room topic을 구독했을 때 브로드캐스트 되는지
-- [ ] 잘못된 `roomId` / `memberId`에 대한 에러 응답 처리
+- [ ]  Spring Boot 통합 테스트에서 STOMP 클라이언트로 `/ws` 연결이 성공하는지 확인
+- [ ]  허용되지 않은 origin에서의 접속 시도에 대한 정책을 명확히 하고 테스트
+
+---
+
+### 2. 메시지 프로토콜 설계 (채팅 & 입력 전송)
+
+**구현**
+
+- [ ]  클라이언트 → 서버 메시지 엔드포인트 정의
+- [ ]  서버 → 클라이언트 브로드캐스트 채널 정의
+- [ ]  (선택) join/leave 이벤트용 타입 분리
+
+**테스트**
+
+- [ ]  STOMP 통합 테스트에서 **`/topic/group/{roomId}`** 구독 → **`/app/group/{roomId}/messages`**로 메시지 전송 → 브로드캐스트 수신 확인
+- [ ]  잘못된 페이로드(필수 필드 누락, 빈 문자열 등)에 대한 서버 측 처리 정책 테스트
+
+---
+
+### **3. WebSocket 핸들러 ↔ GroupConversationService 연동**
+
+**구현**
+
+- [ ]  **`@MessageMapping("/group/{roomId}/messages")`** 핸들러 구현
+- [ ]  서비스 결과(**`RoomState.lastOutput`**)를 WebSocket 응답 DTO (**`GroupRoomMessage`**)로 변환
+- [ ]  **`SimpMessagingTemplate`**를 사용해 **`/topic/group/{roomId}`**로 브로드캐스트
+
+**테스트**
+
+- [ ]  STOMP 통합 테스트에서 실제 **`GroupConversationService`**를 사용해 **`createRoom → join → WebSocket으로 메시지 전송 → 브로드캐스트 응답`**까지 하나의 happy-path 시나리오 검증
+- [ ]  **`GroupConversationService`**를 mock으로 교체한 단위 수준 테스트에서 특정 입력에 대해 기대하는 브로드캐스트 payload가 나가는지 검증
+
+---
+
+### **4. WebSocket 에러 처리 정책**
+
+**구현**
+
+- [ ]  없는 **`roomId`**, 방은 있는데 **`memberId`**가 아닌 경우, **`conversationContext`** 누락 등 GROUP 도메인 예외를 WebSocket 에서도 처리하는 공통 정책 정의
+- [ ]  **`RoomNotFoundException`** → **`code = "ROOM_NOT_FOUND"`**
+- [ ]  **`IllegalArgumentException`** (member 미가입 등) → **`code = "INVALID_INPUT"`**
+- [ ]  **`IllegalStateException`** (context 없음 등) → **`code = "CONTEXT_MISSING"`**
+
+**테스트**
+
+- [ ]  STOMP 통합 테스트에서 존재하지 않는 roomId로 메시지 전송 시 에러 topic으로 ERROR 프레임이 도착하는지 검증
+- [ ]  잘못된 memberId, context 없음 등 케이스에 대해 **`code`** / **`message`** 형식이 REST와 일관적인지 확인
 
 ---
 
