@@ -1,9 +1,11 @@
+// src/main/kotlin/adapter/http/GroupController.kt
 package adapter.http
 
 import adapter.http.dto.*
 import application.group.GroupConversationService
 import application.group.MemberId
 import application.group.RoomId
+import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
 
@@ -13,11 +15,6 @@ class GroupController(
     private val groupService: GroupConversationService
 ) {
 
-    /**
-     * 방 생성
-     *
-     * POST /api/group/rooms
-     */
     @PostMapping("/rooms")
     fun createRoom(
         @RequestBody request: GroupCreateRoomRequest
@@ -30,11 +27,6 @@ class GroupController(
         return ResponseEntity.ok(state.toResponse())
     }
 
-    /**
-     * 방 참가
-     *
-     * POST /api/group/rooms/{roomId}/join
-     */
     @PostMapping("/rooms/{roomId}/join")
     fun joinRoom(
         @PathVariable roomId: String,
@@ -48,11 +40,6 @@ class GroupController(
         return ResponseEntity.ok(state.toResponse())
     }
 
-    /**
-     * 메시지 전송 (대화 진행)
-     *
-     * POST /api/group/rooms/{roomId}/messages
-     */
     @PostMapping("/rooms/{roomId}/messages")
     fun handleMessage(
         @PathVariable roomId: String,
@@ -66,12 +53,37 @@ class GroupController(
         return ResponseEntity.ok(state.toResponse())
     }
 
+    /**
+     * 방 상태 조회 API
+     *
+     * GET /api/group/rooms/{roomId}
+     */
+    @GetMapping("/rooms/{roomId}")
+    fun getRoom(
+        @PathVariable roomId: String
+    ): ResponseEntity<Any> {
+        val id = RoomId(roomId)
+        val state = groupService.getRoom(id)
+
+        return if (state != null) {
+            ResponseEntity.ok(state.toResponse())
+        } else {
+            val body = ErrorResponse(
+                error = ErrorBody(
+                    code = "ROOM_NOT_FOUND",
+                    message = "Room not found: $roomId"
+                )
+            )
+            ResponseEntity.status(HttpStatus.NOT_FOUND).body(body)
+        }
+    }
+
     // ----------------- private mapper -----------------
 
     private fun application.group.RoomState.toResponse(): GroupRoomResponse =
         GroupRoomResponse(
             roomId = this.id.value,
-            members = this.members.map { it.value }.sorted(), // 정렬해서 테스트 예측 가능하게
+            members = this.members.map { it.value }.sorted(),
             message = this.lastOutput.message,
             nextStep = this.lastOutput.nextStep.name
         )
