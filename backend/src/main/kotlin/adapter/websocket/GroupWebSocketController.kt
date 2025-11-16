@@ -1,14 +1,16 @@
 package adapter.websocket
 
+import adapter.http.dto.ErrorBody
+import adapter.http.dto.ErrorResponse
 import adapter.http.dto.GroupMessageRequest
 import adapter.http.dto.GroupRoomResponse
 import application.group.GroupConversationService
 import application.group.MemberId
 import application.group.RoomId
+import application.group.RoomNotFoundException
 import org.springframework.messaging.handler.annotation.DestinationVariable
 import org.springframework.messaging.handler.annotation.MessageMapping
 import org.springframework.messaging.handler.annotation.Payload
-import org.springframework.messaging.handler.annotation.SendTo
 import org.springframework.messaging.simp.SimpMessagingTemplate
 import org.springframework.stereotype.Controller
 
@@ -18,57 +20,45 @@ class GroupWebSocketController(
     private val messagingTemplate: SimpMessagingTemplate
 ) {
 
-    /**
-     * 클라이언트 → 서버:
-     *   /app/group/{roomId}/messages
-     *
-     * 서버 → 클라이언트:
-     *   /topic/group/{roomId}
-     *
-     * HTTP GROUP API와 동일하게 GroupConversationService를 사용하고,
-     * 응답 형식도 GroupRoomResponse를 재사용한다.
-     */
-//    @MessageMapping("/group/{roomId}/messages")
-//    @SendTo("/topic/group/{roomId}")
-//    fun handleMessage(
-//        @DestinationVariable roomId: String,
-//        @Payload request: GroupMessageRequest
-//    ): GroupRoomResponse {
-//        val state = groupService.handleMessage(
-//            roomId = RoomId(roomId),
-//            memberId = MemberId(request.memberId),
-//            input = request.input
-//        )
-//
-//        return GroupRoomResponse(
-//            roomId = state.id.value,
-//            members = state.members.map { it.value }.sorted(),
-//            message = state.lastOutput.message,
-//            nextStep = state.lastOutput.nextStep.name
-//        )
-//
-//    }
     @MessageMapping("/group/{roomId}/messages")
     fun handleGroupMessage(
         @DestinationVariable roomId: String,
-        message: GroupMessageRequest
+        @Payload message: GroupMessageRequest
     ) {
-        // 1) 도메인 서비스 호출
-        val state = groupService.handleMessage(
-            RoomId(roomId),
-            MemberId(message.memberId),
-            message.input
-        )
+        try {
+            // 1) 도메인 서비스 호출 (정상 흐름)
+            val state = groupService.handleMessage(
+                RoomId(roomId),
+                MemberId(message.memberId),
+                message.input
+            )
 
-        // 2) RoomState → GroupRoomResponse 변환
-        val response = GroupRoomResponse(
-            roomId = state.id.value,
-            members = state.members.map { it.value }.sorted(),
-            message = state.lastOutput.message,
-            nextStep = state.lastOutput.nextStep.name
-        )
+            // 2) RoomState → GroupRoomResponse 변환
+            val response = GroupRoomResponse(
+                roomId = state.id.value,
+                members = state.members.map { it.value }.sorted(),
+                message = state.lastOutput.message,
+                nextStep = state.lastOutput.nextStep.name
+            )
 
-        // 3) /topic/group/{roomId} 로 브로드캐스트
-        messagingTemplate.convertAndSend("/topic/group/$roomId", response)
+            // 3) 정상 응답 브로드캐스트
+            messagingTemplate.convertAndSend("/topic/group/$roomId", response)
+        } catch (e: RoomNotFoundException) {
+            sendError(roomId, "ROOM_NOT_FOUND", e.message ?: "Room not found: $roomId")
+        } catch (e: IllegalArgumentException) {
+            sendError(roomId, "INVALID_INPUT", e.message ?: "Invalid input")
+        } catch (e: IllegalStateException) {
+            sendError(roomId, "CONTEXT_MISSING", e.message ?: "Invalid conversation state")
+        }
+    }
+
+    private fun sendError(roomId: String, code: String, message: String) {
+        val error = ErrorResponse(
+            error = ErrorBody(
+                code = code,
+                message = message
+            )
+        )
+        messagingTemplate.convertAndSend("/topic/group/$roomId.errors", error)
     }
 }
