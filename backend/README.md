@@ -514,12 +514,12 @@ com.splitmate
 
 **구현**
 
-- [ ]  Spring WebSocket + STOMP 설정 클래스 추가
-- [ ]  CORS / origin 설정 (프론트엔드 도메인 허용)
+- [x]  Spring WebSocket + STOMP 설정 클래스 추가
+- [x]  CORS / origin 설정 (프론트엔드 도메인 허용)
 
 **테스트**
 
-- [ ]  Spring Boot 통합 테스트에서 STOMP 클라이언트로 `/ws` 연결이 성공하는지 확인
+- [x]  Spring Boot 통합 테스트에서 STOMP 클라이언트로 `/ws` 연결이 성공하는지 확인
 - [ ]  허용되지 않은 origin에서의 접속 시도에 대한 정책을 명확히 하고 테스트
 
 ---
@@ -528,13 +528,13 @@ com.splitmate
 
 **구현**
 
-- [ ]  클라이언트 → 서버 메시지 엔드포인트 정의
-- [ ]  서버 → 클라이언트 브로드캐스트 채널 정의
+- [x]  클라이언트 → 서버 메시지 엔드포인트 정의
+- [x]  서버 → 클라이언트 브로드캐스트 채널 정의
 - [ ]  (선택) join/leave 이벤트용 타입 분리
 
 **테스트**
 
-- [ ]  STOMP 통합 테스트에서 **`/topic/group/{roomId}`** 구독 → **`/app/group/{roomId}/messages`**로 메시지 전송 → 브로드캐스트 수신 확인
+- [x]  STOMP 통합 테스트에서 **`/topic/group/{roomId}`** 구독 → **`/app/group/{roomId}/messages`**로 메시지 전송 → 브로드캐스트 수신 확인
 - [ ]  잘못된 페이로드(필수 필드 누락, 빈 문자열 등)에 대한 서버 측 처리 정책 테스트
 
 ---
@@ -543,14 +543,14 @@ com.splitmate
 
 **구현**
 
-- [ ]  **`@MessageMapping("/group/{roomId}/messages")`** 핸들러 구현
-- [ ]  서비스 결과(**`RoomState.lastOutput`**)를 WebSocket 응답 DTO (**`GroupRoomMessage`**)로 변환
-- [ ]  **`SimpMessagingTemplate`**를 사용해 **`/topic/group/{roomId}`**로 브로드캐스트
+- [x]  **`@MessageMapping("/group/{roomId}/messages")`** 핸들러 구현
+- [x]  서비스 결과(**`RoomState.lastOutput`**)를 WebSocket 응답 DTO (**`GroupRoomMessage`**)로 변환
+- [x]  **`SimpMessagingTemplate`**를 사용해 **`/topic/group/{roomId}`**로 브로드캐스트
 
 **테스트**
 
 - [ ]  STOMP 통합 테스트에서 실제 **`GroupConversationService`**를 사용해 **`createRoom → join → WebSocket으로 메시지 전송 → 브로드캐스트 응답`**까지 하나의 happy-path 시나리오 검증
-- [ ]  **`GroupConversationService`**를 mock으로 교체한 단위 수준 테스트에서 특정 입력에 대해 기대하는 브로드캐스트 payload가 나가는지 검증
+- [x]  **`GroupConversationService`**를 mock으로 교체한 단위 수준 테스트에서 특정 입력에 대해 기대하는 브로드캐스트 payload가 나가는지 검증
 
 ---
 
@@ -558,10 +558,11 @@ com.splitmate
 
 **구현**
 
-- [ ]  없는 **`roomId`**, 방은 있는데 **`memberId`**가 아닌 경우, **`conversationContext`** 누락 등 GROUP 도메인 예외를 WebSocket 에서도 처리하는 공통 정책 정의
-- [ ]  **`RoomNotFoundException`** → **`code = "ROOM_NOT_FOUND"`**
-- [ ]  **`IllegalArgumentException`** (member 미가입 등) → **`code = "INVALID_INPUT"`**
-- [ ]  **`IllegalStateException`** (context 없음 등) → **`code = "CONTEXT_MISSING"`**
+- [x]  없는 **`roomId`**, 방은 있는데 **`memberId`**가 아닌 경우, **`conversationContext`** 누락 등 GROUP 도메인 예외를 WebSocket 에서도 처리하는 공통 정책 정의
+- [x]  **`RoomNotFoundException`** → **`code = "ROOM_NOT_FOUND"`**
+- [x]  **`IllegalArgumentException`** (member 미가입 등) → **`code = "INVALID_INPUT"`**
+- [x]  **`IllegalStateException`** (context 없음 등) → **`code = "CONTEXT_MISSING"`**
+- [x] 에러 토픽: /topic/group/{roomId}.errors 로 ErrorResponse 브로드캐스트
 
 **테스트**
 
