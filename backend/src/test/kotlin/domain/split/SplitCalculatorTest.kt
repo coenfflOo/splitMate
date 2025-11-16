@@ -57,4 +57,62 @@ class SplitCalculatorTest {
             SplitCalculator.splitEvenly(receipt, peopleCount = -3)
         }
     }
+
+    @Test
+    fun `총액, 세금, 퍼센트 팁을 포함해 N분의1을 계산한다`() {
+        val base = Money.of(BigDecimal("27.40"), Currency.CAD)
+        val tax = Money.of(BigDecimal("2.60"), Currency.CAD)
+
+        val tip = Tip(
+            mode = TipMode.PERCENT,
+            percent = 10
+        )
+
+        val receipt = Receipt(
+            baseAmount = base,
+            tax = Tax(tax),
+            tip = tip
+        )
+
+        val result = SplitCalculator.splitEvenly(
+            receipt = receipt,
+            peopleCount = 2
+        )
+
+        // base + tax = 30.00, tip(10%) = 3.00 → total 33.00 / 2 = 16.50
+        assertEquals(result.total,
+            Money.of(BigDecimal("33.00"), Currency.CAD)
+        )
+
+        assertEquals(result.perPerson,
+            Money.of(BigDecimal("16.50"), Currency.CAD)
+        )
+    }
+
+    @Test
+    fun `소수점이 긴 결과는 Money의 반올림 정책을 따른다`() {
+        val base = Money.of(BigDecimal("10.00"), Currency.CAD)
+        val tax = Money.zero(Currency.CAD)
+
+        val tip = Tip(
+            mode = TipMode.ABSOLUTE,
+            absolute = Money.of(BigDecimal("1.00"), Currency.CAD)
+        )
+
+        val receipt = Receipt(
+            baseAmount = base,
+            tax = Tax(tax),
+            tip = tip
+        )
+
+        val result = SplitCalculator.splitEvenly(receipt, 3)
+
+        // (10 + 0 + 1) / 3 = 3.666... → 3.67 (HALF_UP, scale 2)
+        assertEquals(result.total,
+            Money.of(BigDecimal("11.00"), Currency.CAD)
+        )
+        assertEquals(result.perPerson,
+            Money.of(BigDecimal("3.67"), Currency.CAD)
+        )
+    }
 }
