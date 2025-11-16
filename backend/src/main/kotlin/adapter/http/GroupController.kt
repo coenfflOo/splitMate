@@ -2,6 +2,7 @@
 package adapter.http
 
 import adapter.http.dto.*
+import adapter.websocket.toResponse
 import application.group.GroupConversationService
 import application.group.MemberId
 import application.group.RoomId
@@ -79,12 +80,4 @@ class GroupController(
     }
 
     // ----------------- private mapper -----------------
-
-    private fun application.group.RoomState.toResponse(): GroupRoomResponse =
-        GroupRoomResponse(
-            roomId = this.id.value,
-            members = this.members.map { it.value }.sorted(),
-            message = this.lastOutput.message,
-            nextStep = this.lastOutput.nextStep.name
-        )
 }
