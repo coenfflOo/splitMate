@@ -3,8 +3,10 @@ package application.group
 import application.conversation.ConversationContext
 import application.conversation.ConversationFlow
 import domain.conversation.ConversationOutput
+import org.springframework.stereotype.Service
 import java.util.concurrent.ConcurrentHashMap
 
+@Service
 class GroupConversationService(
     private val conversationFlow: ConversationFlow
 ) {
