@@ -75,8 +75,8 @@ frontend/
 
 ### 1-1. 메인 화면(Home)
 
-- [ ]  SOLO / MENU / GROUP 선택 버튼
-- [ ]  프로젝트 소개/간단 설명
+- [x]  SOLO / MENU / GROUP 선택 버튼
+- [x]  프로젝트 소개/간단 설명
 
 ### 1-2. 공통 메시지 / 에러 UI
 
