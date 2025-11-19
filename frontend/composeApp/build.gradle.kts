@@ -23,8 +23,7 @@ kotlin {
                 // 👉 Compose Web
                 implementation(compose.runtime)
                 implementation(compose.web.core)
-                // 필요하면 나중에:
-                // implementation(compose.web.svg)
+                implementation(compose.html.svg)
 
                 // 👉 HTTP API 호출용 Ktor 클라이언트
                 implementation("io.ktor:ktor-client-core:3.0.0")
