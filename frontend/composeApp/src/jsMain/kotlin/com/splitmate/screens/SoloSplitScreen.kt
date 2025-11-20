@@ -37,7 +37,7 @@ fun SoloSplitScreen(
             SoloStep.SPLIT_MODE          -> SplitModeStep(viewModel)
             SoloStep.PEOPLE_COUNT        -> PeopleCountStep(uiState, viewModel)
             SoloStep.EXCHANGE_RATE_MODE  -> ExchangeRateModePlaceholder(uiState, viewModel)
-            SoloStep.EXCHANGE_RATE_VALUE -> ExchangeRateValuePlaceholder()
+            SoloStep.EXCHANGE_RATE_VALUE -> ExchangeRateValuePlaceholder(uiState, viewModel)
             SoloStep.RESULT              -> ResultPlaceholder()
         }
     }
@@ -408,9 +408,37 @@ private fun ExchangeRateModePlaceholder(
 }
 
 @Composable
-private fun ExchangeRateValuePlaceholder() {
-    H2 { Text("환율 값 입력 (준비 중)") }
-    P { Text("수동 입력 모드에서 환율 숫자를 입력할 수 있도록 구현할 예정입니다.") }
+private fun ExchangeRateValuePlaceholder(
+    uiState: SoloSplitUiState,
+    viewModel: SoloSplitViewModel
+) {
+    H2 { Text("8. 환율 값 입력 (수동)") }
+    P {
+        Text("1 CAD가 몇 KRW인지 입력해주세요. 예: 1000")
+    }
+
+    Div({ classes(AppStyles.formColumn) }) {
+        Input(
+            type = InputType.Text,
+            attrs = {
+                classes(AppStyles.textField)
+                value(uiState.exchangeRateInput)
+                onInput { ev -> viewModel.onExchangeRateValueChange(ev.value) }
+                attr("placeholder", "예: 1000")
+            }
+        )
+
+        uiState.exchangeRateError?.let {
+            P({ classes(AppStyles.errorText) }) { Text(it) }
+        }
+
+        Button(attrs = {
+            classes(AppStyles.primaryButton)
+            onClick { viewModel.onExchangeRateValueSubmit() }
+        }) {
+            Text("결과 보기")
+        }
+    }
 }
 
 @Composable

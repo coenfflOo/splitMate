@@ -259,4 +259,43 @@ class SoloSplitViewModel {
         }
         return true
     }
+
+    fun onExchangeRateValueChange(input: String) {
+        val trimmed = input.trim()
+        val error = validateExchangeRateValue(trimmed)
+
+        uiState = uiState.copy(
+            exchangeRateInput = input,
+            exchangeRateError = error
+        )
+    }
+
+    fun onExchangeRateValueSubmit(): Boolean {
+        val trimmed = uiState.exchangeRateInput.trim()
+        val error = validateExchangeRateValue(trimmed)
+
+        uiState = uiState.copy(exchangeRateError = error)
+
+        if (error != null) return false
+
+        // TODO: 나중에 이 값으로 실제 API 요청하기
+        uiState = uiState.copy(step = SoloStep.RESULT)
+        return true
+    }
+
+    private fun validateExchangeRateValue(input: String): String? {
+        if (input.isBlank()) {
+            return "환율 값을 입력해주세요."
+        }
+
+        val numeric = input.replace(",", "")
+        val value = numeric.toDoubleOrNull()
+            ?: return "숫자 형식으로 입력해주세요. 예: 1000"
+
+        if (value <= 0.0) {
+            return "0보다 큰 값을 입력해주세요."
+        }
+
+        return null
+    }
 }
