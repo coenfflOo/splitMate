@@ -1,39 +1,80 @@
 package com.splitmate
 
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import org.jetbrains.compose.web.css.*
 import org.jetbrains.compose.web.dom.*
+import com.splitmate.screens.SoloSplitScreen
+
+// 간단한 화면 enum
+enum class Screen {
+    Home,
+    Solo,
+    Menu,
+    Group
+}
 
 @Composable
 fun App() {
     Style(AppStyles)
 
+    var currentScreen by remember { mutableStateOf(Screen.Home) }
+
     Div({ classes(AppStyles.page) }) {
         Div({ classes(AppStyles.card) }) {
-            H1 { Text("SplitMate") }
-            P {
-                Text("영수증 N분의 1 / 메뉴별 계산 / GROUP 모드를 웹에서 편하게 사용해보세요.")
+            when (currentScreen) {
+                Screen.Home -> HomeScreen(
+                    goSolo = { currentScreen = Screen.Solo },
+                    goMenu = { currentScreen = Screen.Menu },
+                    goGroup = { currentScreen = Screen.Group }
+                )
+
+                Screen.Solo -> SoloSplitScreen(
+                    goHome = { currentScreen = Screen.Home }
+                )
+
+                Screen.Menu -> {
+                    // TODO: 메뉴별 계산 화면
+                    P { Text("MENU 화면은 추후 구현 예정입니다.") }
+                    Button(attrs = { onClick { currentScreen = Screen.Home } }) {
+                        Text("← 홈으로")
+                    }
+                }
+
+                Screen.Group -> {
+                    // TODO: GROUP 모드 화면
+                    P { Text("GROUP 화면은 추후 구현 예정입니다.") }
+                    Button(attrs = { onClick { currentScreen = Screen.Home } }) {
+                        Text("← 홈으로")
+                    }
+                }
             }
+        }
+    }
+}
 
-            Div({ classes(AppStyles.buttonRow) }) {
-                Button(attrs = {
-                    onClick { /* TODO: SOLO 화면으로 이동 */ }
-                }) {
-                    Text("SOLO")
-                }
+// 기존 홈 내용을 분리
+@Composable
+private fun HomeScreen(
+    goSolo: () -> Unit,
+    goMenu: () -> Unit,
+    goGroup: () -> Unit
+) {
+    H1 { Text("SplitMate") }
+    P {
+        Text("영수증 N분의 1 / 메뉴별 계산 / GROUP 모드를 웹에서 편하게 사용해보세요.")
+    }
 
-                Button(attrs = {
-                    onClick { /* TODO: 메뉴별 화면으로 이동 */ }
-                }) {
-                    Text("MENU")
-                }
+    Div({ classes(AppStyles.buttonRow) }) {
+        Button(attrs = { onClick { goSolo() } }) {
+            Text("SOLO")
+        }
 
-                Button(attrs = {
-                    onClick { /* TODO: GROUP 화면으로 이동 */ }
-                }) {
-                    Text("GROUP")
-                }
-            }
+        Button(attrs = { onClick { goMenu() } }) {
+            Text("MENU")
+        }
+
+        Button(attrs = { onClick { goGroup() } }) {
+            Text("GROUP")
         }
     }
 }
@@ -65,5 +106,39 @@ object AppStyles : StyleSheet() {
         display(DisplayStyle.Flex)
         justifyContent(JustifyContent.Center)
         property("gap", "12px")
+    }
+
+    // SOLO 입력폼을 위한 간단 스타일도 추가해두면 편함
+    val formColumn by style {
+        display(DisplayStyle.Flex)
+        flexDirection(FlexDirection.Column)
+        alignItems(AlignItems.Stretch)
+        property("gap", "12px")
+        marginTop(16.px)
+        textAlign("left")
+    }
+
+    val textField by style {
+        padding(8.px, 12.px)
+        borderRadius(8.px)
+        border {
+            style(LineStyle.Solid)
+            width(1.px)
+            color(rgb(70, 80, 120))
+        }
+        backgroundColor(rgb(15, 18, 30))
+        color(Color.white)
+        fontSize(14.px)
+    }
+
+    val errorText by style {
+        color(Color.red)
+        fontSize(13.px)
+    }
+
+    val backButtonRow by style {
+        display(DisplayStyle.Flex)
+        justifyContent(JustifyContent.FlexStart)
+        marginBottom(16.px)
     }
 }

@@ -57,6 +57,7 @@ frontend/
              │       └── splitmate/
              │           ├── App.kt          # 루트 컴포저블
              │           ├── main.kt        # 엔트리 포인트
+             │           ├── model
              │           ├── components/    # 공통 UI 컴포넌트
              │           ├── screens/       # 화면(Home, SoloSplit, MenuSplit...)
              │           ├── api/           # REST API 클라이언트
@@ -90,8 +91,8 @@ frontend/
 
 ### 2-1. 총 금액 입력 화면
 
-- [ ]  금액 입력
-- [ ]  잘못된 값 입력 시 안내
+- [x]  금액 입력
+- [x]  잘못된 값 입력 시 안내
 
 ### 2-2. 세금 입력 화면
 
