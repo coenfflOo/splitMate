@@ -298,4 +298,75 @@ class SoloSplitViewModel {
 
         return null
     }
+
+    fun computeResult(): SoloResult? {
+        val s = uiState
+
+        val base = s.amountInput.replace(",", "").toDoubleOrNull() ?: return null
+
+        val tax = when (s.taxInput.trim().lowercase()) {
+            "없음", "none", "no" -> 0.0
+            else -> s.taxInput.replace(",", "").toDoubleOrNull() ?: return null
+        }
+
+        val tip = when (s.tipMode) {
+            SoloTipMode.NONE, null -> 0.0
+
+            SoloTipMode.PERCENT -> {
+                val percent = s.tipValueInput.replace(",", "").toDoubleOrNull() ?: return null
+                val basePlusTax = base + tax
+                basePlusTax * (percent / 100.0)
+            }
+
+            SoloTipMode.ABSOLUTE -> {
+                s.tipValueInput.replace(",", "").toDoubleOrNull() ?: return null
+            }
+        }
+
+        val total = base + tax + tip
+
+        val people = s.peopleCountInput.trim().toIntOrNull() ?: return null
+        if (people <= 0) return null
+
+        val perPerson = total / people
+
+        val totalCadStr = "${total.format2()} CAD"
+        val perPersonCadStr = "${perPerson.format2()} CAD"
+
+        val perPersonKrwStr = when (s.exchangeMode) {
+            SoloExchangeMode.NONE, null -> null
+
+            SoloExchangeMode.AUTO -> {
+                // TODO: 실제 자동 환율 연동
+                null
+            }
+
+            SoloExchangeMode.MANUAL -> {
+                val rate = s.exchangeRateInput.replace(",", "").toDoubleOrNull()
+                if (rate == null || rate <= 0.0) {
+                    null
+                } else {
+                    val krw = perPerson * rate
+                    val rounded = kotlin.math.round(krw).toLong()
+                    "${rounded.formatWithComma()} KRW"
+                }
+            }
+        }
+
+        return SoloResult(
+            totalCad = totalCadStr,
+            perPersonCad = perPersonCadStr,
+            perPersonKrw = perPersonKrwStr
+        )
+    }
+
+    private fun Double.format2(): String =
+        js("this.toFixed(2)") as String
+
+    private fun Long.formatWithComma(): String {
+        return toString().reversed()
+            .chunked(3)
+            .joinToString(",")
+            .reversed()
+    }
 }

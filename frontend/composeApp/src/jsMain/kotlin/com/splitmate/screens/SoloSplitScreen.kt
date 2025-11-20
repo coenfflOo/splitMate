@@ -38,7 +38,7 @@ fun SoloSplitScreen(
             SoloStep.PEOPLE_COUNT        -> PeopleCountStep(uiState, viewModel)
             SoloStep.EXCHANGE_RATE_MODE  -> ExchangeRateModePlaceholder(uiState, viewModel)
             SoloStep.EXCHANGE_RATE_VALUE -> ExchangeRateValuePlaceholder(uiState, viewModel)
-            SoloStep.RESULT              -> ResultPlaceholder()
+            SoloStep.RESULT              -> ResultPlaceholder(viewModel, goHome)
         }
     }
 }
@@ -442,7 +442,41 @@ private fun ExchangeRateValuePlaceholder(
 }
 
 @Composable
-private fun ResultPlaceholder() {
-    H2 { Text("결과 화면 (준비 중)") }
-    P { Text("REST API 결과를 받아 총합 및 1인당 부담금, KRW 변환 값을 보여줄 예정입니다.") }
+private fun ResultPlaceholder(
+    viewModel: SoloSplitViewModel,
+    goHome: () -> Unit
+){
+    val result = viewModel.computeResult()
+
+    H2 { Text("9. 계산 결과") }
+
+    if (result == null) {
+        P {
+            Text("입력 값에 문제가 있어 결과를 계산할 수 없습니다. 이전 단계로 돌아가 다시 시도해주세요.")
+        }
+    } else {
+        Div({ classes(AppStyles.formColumn) }) {
+            P {
+                Text("총 금액 (CAD): ${result.totalCad}")
+            }
+            P {
+                Text("1인당 (CAD): ${result.perPersonCad}")
+            }
+
+            result.perPersonKrw?.let { krw ->
+                P {
+                    Text("1인당 (KRW): $krw")
+                }
+            }
+        }
+    }
+
+    Div({ classes(AppStyles.buttonRow) }) {
+        Button(attrs = {
+            classes(AppStyles.secondaryButton)
+            onClick { goHome() }
+        }) {
+            Text("← 홈으로")
+        }
+    }
 }

@@ -164,4 +164,18 @@ object AppStyles : StyleSheet() {
             backgroundColor(rgb(70, 85, 220))
         }
     }
+
+    val secondaryButton by style {
+        padding(8.px, 16.px)
+        borderRadius(999.px)
+        backgroundColor(Color.transparent)
+        color(Color.white)
+        border {
+            style(LineStyle.Solid)
+            width(1.px)
+            color(Color.white)
+        }
+        property("cursor", "pointer")
+    }
+
 }
