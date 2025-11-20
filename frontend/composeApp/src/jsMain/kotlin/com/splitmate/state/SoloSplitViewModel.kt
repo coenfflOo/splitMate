@@ -4,30 +4,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 
-// SOLO 모드 내부 단계
-enum class SoloStep {
-    TOTAL_AMOUNT,
-    TAX
-}
-
-data class SoloSplitUiState(
-    val step: SoloStep = SoloStep.TOTAL_AMOUNT,
-
-    // 총 금액 입력
-    val amountInput: String = "",
-    val amountError: String? = null,
-
-    // 세금 입력
-    val taxInput: String = "",
-    val taxError: String? = null
-) {
-    val canProceedFromTotal: Boolean
-        get() = amountInput.isNotBlank() && amountError == null
-
-    val canProceedFromTax: Boolean
-        get() = taxInput.isNotBlank() && taxError == null
-}
-
 class SoloSplitViewModel {
 
     var uiState by mutableStateOf(SoloSplitUiState())
@@ -102,7 +78,7 @@ class SoloSplitViewModel {
 
         if (error != null) return false
 
-        // TODO: 다음 단계(팁 입력)로 진행 예정
+        uiState = uiState.copy(step = SoloStep.TIP_MODE)
         return true
     }
 
@@ -113,12 +89,10 @@ class SoloSplitViewModel {
 
         val normalized = input.trim().lowercase()
 
-        // 없음 케이스
         if (normalized == "없음" || normalized == "none" || normalized == "no") {
             return null
         }
 
-        // 숫자 케이스
         val numeric = input.replace(",", "")
         val value = numeric.toDoubleOrNull()
             ?: return "숫자 또는 '없음'으로 입력해주세요."
@@ -128,5 +102,32 @@ class SoloSplitViewModel {
         }
 
         return null
+    }
+
+    fun onTipModeSelected(mode: SoloTipMode) {
+        uiState = uiState.copy(
+            tipMode = mode,
+            tipModeError = null
+        )
+    }
+
+    fun onTipModeProceed() {
+        val mode = uiState.tipMode
+        if (mode == null) {
+            uiState = uiState.copy(
+                tipModeError = "팁 입력 방식을 선택해주세요."
+            )
+            return
+        }
+
+        uiState = when (mode) {
+            SoloTipMode.PERCENT,
+            SoloTipMode.ABSOLUTE -> uiState.copy(step = SoloStep.TIP_VALUE)
+
+            SoloTipMode.NONE -> uiState.copy(
+                // 팁 없이 진행 → 바로 분배 방식 단계로 (2-5에서 구현)
+                step = SoloStep.SPLIT_MODE
+            )
+        }
     }
 }

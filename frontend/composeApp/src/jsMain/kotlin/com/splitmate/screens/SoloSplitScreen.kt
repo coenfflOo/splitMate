@@ -2,6 +2,7 @@ package com.splitmate.screens
 
 import androidx.compose.runtime.*
 import com.splitmate.AppStyles
+import com.splitmate.state.*
 import com.splitmate.state.SoloSplitUiState
 import com.splitmate.state.SoloSplitViewModel
 import com.splitmate.state.SoloStep
@@ -18,7 +19,6 @@ fun SoloSplitScreen(
     val uiState = viewModel.uiState
 
     Div {
-        // 상단 뒤로가기
         Div({ classes(AppStyles.backButtonRow) }) {
             Button(attrs = {
                 onClick { goHome() }
@@ -30,6 +30,9 @@ fun SoloSplitScreen(
         when (uiState.step) {
             SoloStep.TOTAL_AMOUNT -> TotalAmountStep(uiState, viewModel)
             SoloStep.TAX -> TaxStep(uiState, viewModel)
+            SoloStep.TIP_MODE -> TipModeStep(uiState, viewModel)
+            SoloStep.TIP_VALUE -> null
+            SoloStep.SPLIT_MODE -> SplitModePlaceholder()
         }
     }
 }
@@ -135,5 +138,71 @@ private fun TaxStep(
         }) {
             Text("다음 단계로 (팁 입력 예정)")
         }
+    }
+}
+
+@Composable
+private fun TipModeStep(
+    uiState: SoloSplitUiState,
+    viewModel: SoloSplitViewModel
+) {
+    H2 { Text("SOLO N분의 1 계산 – 3단계") }
+    P {
+        Text("팁 입력 방식을 선택해주세요. 퍼센트 / 금액 / 없음 중에서 고를 수 있습니다.")
+    }
+
+    Div({ classes(AppStyles.formColumn) }) {
+        P { Text("팁 입력 방식") }
+
+        Div({ classes(AppStyles.buttonRow) }) {
+            Button(attrs = {
+                onClick { viewModel.onTipModeSelected(SoloTipMode.PERCENT) }
+            }) { Text("% 퍼센트") }
+
+            Button(attrs = {
+                onClick { viewModel.onTipModeSelected(SoloTipMode.ABSOLUTE) }
+            }) { Text("$ 금액") }
+
+            Button(attrs = {
+                onClick { viewModel.onTipModeSelected(SoloTipMode.NONE) }
+            }) { Text("팁 없음") }
+        }
+
+        if (uiState.tipMode != null) {
+            P {
+                val label = when (uiState.tipMode) {
+                    SoloTipMode.PERCENT -> "퍼센트(%)로 팁을 입력합니다."
+                    SoloTipMode.ABSOLUTE -> "금액($)으로 팁을 입력합니다."
+                    SoloTipMode.NONE -> "팁 없이 계산을 진행합니다."
+                }
+                Text(label)
+            }
+        }
+
+        if (uiState.tipModeError != null) {
+            P({ classes(AppStyles.errorText) }) {
+                Text(uiState.tipModeError)
+            }
+        }
+
+        Button(attrs = {
+            onClick { viewModel.onTipModeProceed() }
+        }) {
+            val label = when (uiState.tipMode) {
+                SoloTipMode.PERCENT,
+                SoloTipMode.ABSOLUTE -> "다음 단계로 (팁 값 입력)"
+                SoloTipMode.NONE -> "다음 단계로 (분배 방식 선택)"
+                null -> "다음 단계로"
+            }
+            Text(label)
+        }
+    }
+}
+
+@Composable
+private fun SplitModePlaceholder() {
+    H2 { Text("SOLO N분의 1 계산 – 분배 방식 선택 (준비중)") }
+    P {
+        Text("분배 방식 선택 화면은 아직 구현 중입니다. 나중에 N분의 1 / 메뉴별 등을 선택할 수 있게 됩니다.")
     }
 }
