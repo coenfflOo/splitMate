@@ -3,10 +3,49 @@ package com.splitmate.state
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import com.splitmate.websocket.GroupStompClient
+import com.splitmate.websocket.WsGroupMessage
+import com.splitmate.websocket.WsErrorMessage
+
 class GroupViewModel {
 
     var uiState by mutableStateOf(GroupUiState())
         private set
+
+    private val socketClient = GroupStompClient()
+
+    init {
+        socketClient.onConnected = {
+            uiState = uiState.copy(
+                info = "WebSocket 연결 완료. 서버와 실시간 통신을 시작합니다.",
+                error = null
+            )
+        }
+
+        socketClient.onDisconnected = {
+            uiState = uiState.copy(
+                info = "WebSocket 연결이 종료되었습니다.",
+                isJoined = false,
+                joinedRoomId = null
+            )
+        }
+
+        socketClient.onGroupMessage = { msg: WsGroupMessage ->
+            handleGroupMessage(msg)
+        }
+
+        socketClient.onErrorMessage = { err: WsErrorMessage ->
+            uiState = uiState.copy(
+                error = "[${err.code}] ${err.message}"
+            )
+        }
+
+        socketClient.onConnectionError = { reason: String ->
+            uiState = uiState.copy(
+                error = reason
+            )
+        }
+    }
 
     fun onRoomIdChange(input: String) {
         uiState = uiState.copy(
@@ -33,14 +72,17 @@ class GroupViewModel {
             return
         }
 
+        // WebSocket 연결 + STOMP 구독
+        socketClient.connect(roomId)
+
         uiState = uiState.copy(
             isJoined = true,
             joinedRoomId = roomId,
             members = listOf(memberId),
             messages = emptyList(),
-            currentPrompt = "총 결제 금액을 입력해주세요. (서버와 WebSocket 연동은 추후 구현)",
+            currentPrompt = "서버 안내 메시지를 기다리는 중입니다...",
             error = null,
-            info = "방이 생성되었다고 가정하고 입장했습니다. (Mock 상태)"
+            info = "방이 생성되었다고 가정하고 WebSocket에 연결했습니다."
         )
     }
 
@@ -55,28 +97,54 @@ class GroupViewModel {
             return
         }
 
+        socketClient.connect(roomId)
+
         uiState = uiState.copy(
             isJoined = true,
             joinedRoomId = roomId,
+            // 단순히 로컬에서 멤버 리스트 업데이트 (추후 REST 응답으로 대체 가능)
             members = (uiState.members + memberId).distinct(),
-            info = "기존 방에 입장했다고 가정합니다. (Mock 상태)",
-            error = null
+            messages = emptyList(),
+            currentPrompt = "서버 안내 메시지를 기다리는 중입니다...",
+            error = null,
+            info = "기존 방에 입장했다고 가정하고 WebSocket에 연결했습니다."
         )
     }
+
 
     fun onInputTextChange(input: String) {
         uiState = uiState.copy(inputText = input)
     }
 
-
-    fun sendMessageMock() {
+    fun sendMessage() {
         val text = uiState.inputText.trim()
-        if (text.isEmpty()) return
+        val roomId = uiState.joinedRoomId
+        val memberId = uiState.memberIdInput.trim()
 
-        val newMessage = "나: $text"
+        if (text.isEmpty() || roomId.isNullOrEmpty() || memberId.isEmpty()) {
+            return
+        }
+
+        socketClient.sendGroupInput(
+            memberId = memberId,
+            input = text
+        )
+
         uiState = uiState.copy(
-            messages = uiState.messages + newMessage,
+            messages = uiState.messages + "나: $text",
             inputText = ""
+        )
+    }
+
+    private fun handleGroupMessage(msg: WsGroupMessage) {
+        val newList = uiState.messages + "서버: ${msg.message}"
+
+        uiState = uiState.copy(
+            joinedRoomId = msg.roomId,
+            members = if (msg.members.isNotEmpty()) msg.members else uiState.members,
+            messages = newList,
+            currentPrompt = msg.message,
+            error = null
         )
     }
 
@@ -86,5 +154,9 @@ class GroupViewModel {
 
     fun clearError() {
         uiState = uiState.copy(error = null)
+    }
+
+    fun disconnect() {
+        socketClient.disconnect()
     }
 }
