@@ -1,6 +1,7 @@
 package com.splitmate
 
 import androidx.compose.runtime.*
+import com.splitmate.screens.MenuSplitScreen
 import org.jetbrains.compose.web.css.*
 import org.jetbrains.compose.web.dom.*
 import com.splitmate.screens.SoloSplitScreen
@@ -32,13 +33,9 @@ fun App() {
                     goHome = { currentScreen = Screen.Home }
                 )
 
-                Screen.Menu -> {
-                    // TODO: 메뉴별 계산 화면
-                    P { Text("MENU 화면은 추후 구현 예정입니다.") }
-                    Button(attrs = { onClick { currentScreen = Screen.Home } }) {
-                        Text("← 홈으로")
-                    }
-                }
+                Screen.Menu -> MenuSplitScreen(
+                    goHome = { currentScreen = Screen.Home }
+                )
 
                 Screen.Group -> {
                     // TODO: GROUP 모드 화면

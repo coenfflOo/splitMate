@@ -12,7 +12,6 @@ class MenuSplitViewModel {
     private var nextMenuId = 1
     private var nextParticipantId = 1
 
-
     fun addMenuItem() {
         val newItem = MenuItemUi(
             id = nextMenuId++
@@ -77,7 +76,6 @@ class MenuSplitViewModel {
 
     fun goToParticipantsStep() {
         if (uiState.menuItems.isEmpty()) {
-            // 최소 1개는 있어야 하므로 자동 추가 + 에러 느낌 주기
             addMenuItem()
             return
         }
@@ -86,7 +84,6 @@ class MenuSplitViewModel {
 
         uiState = uiState.copy(step = MenuStep.PARTICIPANTS)
     }
-
 
     fun addParticipant() {
         val newParticipant = ParticipantUi(
@@ -99,7 +96,6 @@ class MenuSplitViewModel {
 
     fun removeParticipant(id: Int) {
         val newList = uiState.participants.filterNot { it.id == id }
-        // assignments에서 해당 참가자 제거
         val newAssignments = uiState.assignments.mapValues { (_, set) ->
             set - id
         }
@@ -148,5 +144,77 @@ class MenuSplitViewModel {
 
     fun backToParticipantsStep() {
         uiState = uiState.copy(step = MenuStep.PARTICIPANTS)
+    }
+
+
+    fun toggleAssignment(menuId: Int, participantId: Int) {
+        val current = uiState.assignments[menuId] ?: emptySet()
+        val newSet = if (current.contains(participantId)) {
+            current - participantId
+        } else {
+            current + participantId
+        }
+        uiState = uiState.copy(
+            assignments = uiState.assignments + (menuId to newSet)
+        )
+    }
+
+    private fun validateAssignments(): Boolean {
+        val menuIds = uiState.menuItems.map { it.id }.toSet()
+        val assignments = uiState.assignments
+
+        return menuIds.all { id ->
+            (assignments[id] ?: emptySet()).isNotEmpty()
+        }
+    }
+
+    fun goToResultStep() {
+        if (!validateAssignments()) {
+            return
+        }
+
+        val result = computeLocalResult()
+        uiState = uiState.copy(
+            step = MenuStep.RESULT,
+            result = result
+        )
+    }
+
+
+    private fun computeLocalResult(): MenuSplitResultUi {
+        // 메뉴 가격 파싱
+        val menuPriceMap: Map<Int, Double> = uiState.menuItems.associate { item ->
+            val value = item.priceInput.replace(",", "").toDoubleOrNull() ?: 0.0
+            item.id to value
+        }
+
+        // 참가자별 subtotal 계산
+        val subtotalMap = mutableMapOf<Int, Double>()
+
+        uiState.assignments.forEach { (menuId, participantIds) ->
+            val price = menuPriceMap[menuId] ?: 0.0
+            if (participantIds.isEmpty()) return@forEach
+
+            val share = price / participantIds.size
+            participantIds.forEach { pid ->
+                val current = subtotalMap[pid] ?: 0.0
+                subtotalMap[pid] = current + share
+            }
+        }
+
+        val perPersonTotals = uiState.participants.map { participant ->
+            val subtotal = subtotalMap[participant.id] ?: 0.0
+            PerPersonTotalUi(
+                participantName = participant.name.ifBlank { "참가자 ${participant.id}" },
+                subtotal = subtotal
+            )
+        }
+
+        val totalAmount = menuPriceMap.values.sum()
+
+        return MenuSplitResultUi(
+            perPersonTotals = perPersonTotals,
+            totalAmount = totalAmount
+        )
     }
 }
