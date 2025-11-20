@@ -3,11 +3,9 @@ package com.splitmate.state
 data class SoloSplitUiState(
     val step: SoloStep = SoloStep.TOTAL_AMOUNT,
 
-    // 총 금액 입력
     val amountInput: String = "",
     val amountError: String? = null,
 
-    // 세금 입력
     val taxInput: String = "",
     val taxError: String? = null,
 
@@ -18,7 +16,10 @@ data class SoloSplitUiState(
     val tipValueError: String? = null,
 
     val peopleCountInput: String = "",
-    val peopleCountError: String? = null
+    val peopleCountError: String? = null,
+
+    val exchangeMode: SoloExchangeMode? = null,
+    val exchangeModeError: String? = null,
 ) {
     val canProceedFromTotal: Boolean
         get() = amountInput.isNotBlank() && amountError == null

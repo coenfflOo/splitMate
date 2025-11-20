@@ -227,4 +227,36 @@ class SoloSplitViewModel {
         return null
     }
 
+    fun onExchangeModeSelected(mode: SoloExchangeMode) {
+        uiState = uiState.copy(
+            exchangeMode = mode,
+            exchangeModeError = null
+        )
+    }
+
+    fun onExchangeModeSubmit(): Boolean {
+        val mode = uiState.exchangeMode
+        if (mode == null) {
+            uiState = uiState.copy(
+                exchangeModeError = "환율 모드를 선택해주세요."
+            )
+            return false
+        }
+
+        uiState = when (mode) {
+            SoloExchangeMode.MANUAL ->
+                uiState.copy(
+                    exchangeModeError = null,
+                    step = SoloStep.EXCHANGE_RATE_VALUE
+                )
+
+            SoloExchangeMode.AUTO,
+            SoloExchangeMode.NONE ->
+                uiState.copy(
+                    exchangeModeError = null,
+                    step = SoloStep.RESULT
+                )
+        }
+        return true
+    }
 }

@@ -35,8 +35,8 @@ fun SoloSplitScreen(
             SoloStep.TIP_MODE            -> TipModeStep(uiState, viewModel)
             SoloStep.TIP_VALUE           -> TipValueStep(uiState, viewModel)
             SoloStep.SPLIT_MODE          -> SplitModeStep(viewModel)
-            SoloStep.PEOPLE_COUNT        -> PeopleCountStep(uiState, viewModel)   // ✅ 새 화면
-            SoloStep.EXCHANGE_RATE_MODE  -> ExchangeRateModePlaceholder()         // 다음 단계용 placeholder
+            SoloStep.PEOPLE_COUNT        -> PeopleCountStep(uiState, viewModel)
+            SoloStep.EXCHANGE_RATE_MODE  -> ExchangeRateModePlaceholder(uiState, viewModel)
             SoloStep.EXCHANGE_RATE_VALUE -> ExchangeRateValuePlaceholder()
             SoloStep.RESULT              -> ResultPlaceholder()
         }
@@ -366,9 +366,45 @@ private fun TipValueStep(
 }
 
 @Composable
-private fun ExchangeRateModePlaceholder() {
+private fun ExchangeRateModePlaceholder(
+    uiState: SoloSplitUiState,
+    viewModel: SoloSplitViewModel
+) {
     H2 { Text("환율 모드 선택 (준비 중)") }
-    P { Text("다음 단계에서 자동/수동/생략 모드를 선택할 수 있도록 구현할 예정입니다.") }
+    H2 { Text("7. 환율 모드 선택") }
+    P { Text("환율을 자동으로 불러올지, 직접 입력할지 선택해주세요.") }
+
+    Div({ classes(AppStyles.formColumn) }) {
+
+        Button(attrs = {
+            onClick { viewModel.onExchangeModeSelected(SoloExchangeMode.AUTO) }
+        }) {
+            Text("1) 오늘 환율 자동 조회 (CAD → KRW)")
+        }
+
+        Button(attrs = {
+            onClick { viewModel.onExchangeModeSelected(SoloExchangeMode.MANUAL) }
+        }) {
+            Text("2) 환율 직접 입력")
+        }
+
+        Button(attrs = {
+            onClick { viewModel.onExchangeModeSelected(SoloExchangeMode.NONE) }
+        }) {
+            Text("3) KRW 변환 없이 CAD만 보기")
+        }
+
+        uiState.exchangeModeError?.let {
+            P({ classes(AppStyles.errorText) }) { Text(it) }
+        }
+
+        Button(attrs = {
+            classes(AppStyles.primaryButton)
+            onClick { viewModel.onExchangeModeSubmit() }
+        }) {
+            Text("다음")
+        }
+    }
 }
 
 @Composable
