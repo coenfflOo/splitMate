@@ -31,7 +31,7 @@ fun SoloSplitScreen(
             SoloStep.TOTAL_AMOUNT -> TotalAmountStep(uiState, viewModel)
             SoloStep.TAX -> TaxStep(uiState, viewModel)
             SoloStep.TIP_MODE -> TipModeStep(uiState, viewModel)
-            SoloStep.TIP_VALUE -> null
+            SoloStep.TIP_VALUE -> TipValueStep(uiState, viewModel)
             SoloStep.SPLIT_MODE -> SplitModePlaceholder()
         }
     }
@@ -204,5 +204,88 @@ private fun SplitModePlaceholder() {
     H2 { Text("SOLO N분의 1 계산 – 분배 방식 선택 (준비중)") }
     P {
         Text("분배 방식 선택 화면은 아직 구현 중입니다. 나중에 N분의 1 / 메뉴별 등을 선택할 수 있게 됩니다.")
+    }
+}
+
+@Composable
+private fun TipValueStep(
+    uiState: SoloSplitUiState,
+    viewModel: SoloSplitViewModel
+) {
+    H2 { Text("SOLO N분의 1 계산 – 4단계") }
+
+    val mode = uiState.tipMode
+
+    val description = when (mode) {
+        SoloTipMode.PERCENT -> "퍼센트(%) 기준으로 팁을 입력해주세요. 예: 15"
+        SoloTipMode.ABSOLUTE -> "금액($) 기준으로 팁을 입력해주세요. 예: 10.00"
+        SoloTipMode.NONE, null -> "팁 없이 진행하는 모드입니다."
+    }
+
+    P { Text(description) }
+
+    if (mode == SoloTipMode.NONE || mode == null) {
+        // 안전망: NONE 모드라면 TIP 값 입력 단계는 사실상 건너뛰는 게 정상
+        P {
+            Text("팁 없음 모드이므로, 다음 단계에서 분배 방식을 선택하게 됩니다.")
+        }
+        Button(attrs = {
+            onClick {
+                // 그냥 다음 단계로 넘기기
+                viewModel.onTipValueSubmit()
+            }
+        }) {
+            Text("분배 방식 선택으로 이동")
+        }
+        return
+    }
+
+    Div({ classes(AppStyles.formColumn) }) {
+        Label(forId = "tipValue") {
+            val label = when (mode) {
+                SoloTipMode.PERCENT -> "팁 퍼센트 (%)"
+                SoloTipMode.ABSOLUTE -> "팁 금액 (CAD)"
+                SoloTipMode.NONE -> "팁"
+            }
+            Text(label)
+        }
+
+        val placeholderText = when (mode) {
+            SoloTipMode.PERCENT -> "예: 15"
+            SoloTipMode.ABSOLUTE -> "예: 10.00"
+            SoloTipMode.NONE -> ""
+        }
+
+        Input(
+            type = InputType.Text,
+            attrs = {
+                id("tipValue")
+                if (placeholderText.isNotBlank()) {
+                    placeholder(placeholderText)
+                }
+                value(uiState.tipValueInput)
+                onInput { event ->
+                    viewModel.onTipValueChange(event.value)
+                }
+                classes(AppStyles.textField)
+            }
+        )
+
+        if (uiState.tipValueError != null) {
+            P({ classes(AppStyles.errorText) }) {
+                Text(uiState.tipValueError)
+            }
+        }
+
+        Button(attrs = {
+            if (!uiState.canProceedFromTipValue) {
+                disabled()
+            }
+            onClick {
+                viewModel.onTipValueSubmit()
+            }
+        }) {
+            Text("다음 단계로 (분배 방식 선택)")
+        }
     }
 }

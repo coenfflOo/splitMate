@@ -130,4 +130,66 @@ class SoloSplitViewModel {
             )
         }
     }
+
+    fun onTipValueChange(input: String) {
+        val trimmed = input.trim()
+        val error = validateTipValue(trimmed)
+
+        uiState = uiState.copy(
+            tipValueInput = input,
+            tipValueError = error
+        )
+    }
+
+    fun onTipValueSubmit(): Boolean {
+        val trimmed = uiState.tipValueInput.trim()
+        val error = validateTipValue(trimmed)
+
+        uiState = uiState.copy(tipValueError = error)
+
+        if (error != null) return false
+
+        // TODO: 다음 단계(분배 방식 선택)로 이동 (2-5에서 구현)
+        uiState = uiState.copy(step = SoloStep.SPLIT_MODE)
+        return true
+    }
+
+    private fun validateTipValue(input: String): String? {
+        val mode = uiState.tipMode
+
+        // 안전망: 모드가 없으면 에러
+        if (mode == null) {
+            return "먼저 팁 입력 방식을 선택해주세요."
+        }
+
+        // NONE 모드인 경우 여기까지 오지 않는 것이 정상
+        if (mode == SoloTipMode.NONE) {
+            return null
+        }
+
+        if (input.isBlank()) {
+            return "팁 값을 입력해주세요."
+        }
+
+        val numeric = input.replace(",", "")
+        val number = numeric.toDoubleOrNull()
+            ?: return "숫자 형식으로 입력해주세요."
+
+        return when (mode) {
+            SoloTipMode.PERCENT -> {
+                if (number < 0.0 || number > 100.0) {
+                    "0 ~ 100 사이의 퍼센트만 입력할 수 있습니다."
+                } else null
+            }
+
+            SoloTipMode.ABSOLUTE -> {
+                if (number <= 0.0) {
+                    "0보다 큰 금액을 입력해주세요."
+                } else null
+            }
+
+            SoloTipMode.NONE -> null
+        }
+    }
+
 }
