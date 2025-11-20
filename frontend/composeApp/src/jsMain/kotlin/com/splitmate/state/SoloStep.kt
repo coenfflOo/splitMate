@@ -5,5 +5,6 @@ enum class SoloStep {
     TAX,
     TIP_MODE,
     TIP_VALUE,
-    SPLIT_MODE
+    SPLIT_MODE,
+    PEOPLE_COUNT
 }

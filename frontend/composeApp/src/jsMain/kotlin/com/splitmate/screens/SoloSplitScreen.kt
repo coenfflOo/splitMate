@@ -32,7 +32,8 @@ fun SoloSplitScreen(
             SoloStep.TAX -> TaxStep(uiState, viewModel)
             SoloStep.TIP_MODE -> TipModeStep(uiState, viewModel)
             SoloStep.TIP_VALUE -> TipValueStep(uiState, viewModel)
-            SoloStep.SPLIT_MODE -> SplitModePlaceholder()
+            SoloStep.SPLIT_MODE   -> SplitModeStep(viewModel)
+            SoloStep.PEOPLE_COUNT -> PeopleCountPlaceholder()
         }
     }
 }
@@ -200,12 +201,48 @@ private fun TipModeStep(
 }
 
 @Composable
-private fun SplitModePlaceholder() {
-    H2 { Text("SOLO N분의 1 계산 – 분배 방식 선택 (준비중)") }
+private fun SplitModeStep(
+    viewModel: SoloSplitViewModel
+) {
+    H2 { Text("SOLO N분의 1 계산 – 5단계") }
     P {
-        Text("분배 방식 선택 화면은 아직 구현 중입니다. 나중에 N분의 1 / 메뉴별 등을 선택할 수 있게 됩니다.")
+        Text("분배 방식을 선택해주세요. 현재는 N분의 1만 지원합니다.")
+    }
+
+    Div({ classes(AppStyles.formColumn) }) {
+        P { Text("분배 방식") }
+
+        Div({ classes(AppStyles.buttonRow) }) {
+            // ✅ N분의 1만 실제로 동작
+            Button(attrs = {
+                onClick { viewModel.onSplitModeNDivideSelected() }
+            }) {
+                Text("1) N분의 1")
+            }
+
+            // 메뉴별은 아직 준비 중
+            Button(attrs = {
+                // 아직 미구현이므로 비활성화
+                disabled()
+            }) {
+                Text("2) 메뉴별 계산 (준비 중)")
+            }
+        }
+
+        P {
+            Text("지금은 N분의 1 방식만 사용할 수 있습니다. 메뉴별 계산은 추후 지원 예정입니다.")
+        }
     }
 }
+
+@Composable
+private fun PeopleCountPlaceholder() {
+    H2 { Text("SOLO N분의 1 계산 – 인원 수 입력 (준비 중)") }
+    P {
+        Text("다음 단계에서는 실제로 인원 수를 입력받아 N분의 1 계산을 진행합니다.")
+    }
+}
+
 
 @Composable
 private fun TipValueStep(
@@ -225,13 +262,11 @@ private fun TipValueStep(
     P { Text(description) }
 
     if (mode == SoloTipMode.NONE || mode == null) {
-        // 안전망: NONE 모드라면 TIP 값 입력 단계는 사실상 건너뛰는 게 정상
         P {
             Text("팁 없음 모드이므로, 다음 단계에서 분배 방식을 선택하게 됩니다.")
         }
         Button(attrs = {
             onClick {
-                // 그냥 다음 단계로 넘기기
                 viewModel.onTipValueSubmit()
             }
         }) {

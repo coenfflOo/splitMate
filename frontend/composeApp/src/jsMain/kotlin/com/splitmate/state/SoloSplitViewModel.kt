@@ -9,8 +9,6 @@ class SoloSplitViewModel {
     var uiState by mutableStateOf(SoloSplitUiState())
         private set
 
-    // ---------------- 총 금액 ----------------
-
     fun onAmountChange(input: String) {
         val trimmed = input.trim()
         val error = validateAmount(trimmed)
@@ -28,7 +26,6 @@ class SoloSplitViewModel {
 
         if (error != null) return false
 
-        // 총 금액이 유효하면 세금 단계로 진행
         uiState = uiState.copy(step = SoloStep.TAX)
         return true
     }
@@ -49,8 +46,6 @@ class SoloSplitViewModel {
         return null
     }
 
-    // ---------------- 세금 ----------------
-
     fun onTaxChange(input: String) {
         val trimmed = input.trim()
         val error = validateTax(trimmed)
@@ -61,7 +56,6 @@ class SoloSplitViewModel {
     }
 
     fun onTaxNoneClick() {
-        // UI에서 "세금 없음" 버튼 눌렀을 때
         val value = "없음"
         val error = validateTax(value)
         uiState = uiState.copy(
@@ -149,7 +143,6 @@ class SoloSplitViewModel {
 
         if (error != null) return false
 
-        // TODO: 다음 단계(분배 방식 선택)로 이동 (2-5에서 구현)
         uiState = uiState.copy(step = SoloStep.SPLIT_MODE)
         return true
     }
@@ -157,12 +150,10 @@ class SoloSplitViewModel {
     private fun validateTipValue(input: String): String? {
         val mode = uiState.tipMode
 
-        // 안전망: 모드가 없으면 에러
         if (mode == null) {
             return "먼저 팁 입력 방식을 선택해주세요."
         }
 
-        // NONE 모드인 경우 여기까지 오지 않는 것이 정상
         if (mode == SoloTipMode.NONE) {
             return null
         }
@@ -190,6 +181,15 @@ class SoloSplitViewModel {
 
             SoloTipMode.NONE -> null
         }
+    }
+
+    fun onSplitModeNDivideSelected() {
+        uiState = uiState.copy(
+            step = SoloStep.PEOPLE_COUNT
+        )
+    }
+
+    fun onSplitModeMenuClicked() {
     }
 
 }
