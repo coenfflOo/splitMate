@@ -10,6 +10,8 @@ import org.jetbrains.compose.web.attributes.InputType
 import org.jetbrains.compose.web.attributes.disabled
 import org.jetbrains.compose.web.attributes.placeholder
 import org.jetbrains.compose.web.dom.*
+import org.jetbrains.compose.web.dom.Input
+
 
 @Composable
 fun SoloSplitScreen(
@@ -28,12 +30,15 @@ fun SoloSplitScreen(
         }
 
         when (uiState.step) {
-            SoloStep.TOTAL_AMOUNT -> TotalAmountStep(uiState, viewModel)
-            SoloStep.TAX -> TaxStep(uiState, viewModel)
-            SoloStep.TIP_MODE -> TipModeStep(uiState, viewModel)
-            SoloStep.TIP_VALUE -> TipValueStep(uiState, viewModel)
-            SoloStep.SPLIT_MODE   -> SplitModeStep(viewModel)
-            SoloStep.PEOPLE_COUNT -> PeopleCountPlaceholder()
+            SoloStep.TOTAL_AMOUNT        -> TotalAmountStep(uiState, viewModel)
+            SoloStep.TAX                 -> TaxStep(uiState, viewModel)
+            SoloStep.TIP_MODE            -> TipModeStep(uiState, viewModel)
+            SoloStep.TIP_VALUE           -> TipValueStep(uiState, viewModel)
+            SoloStep.SPLIT_MODE          -> SplitModeStep(viewModel)
+            SoloStep.PEOPLE_COUNT        -> PeopleCountStep(uiState, viewModel)   // ✅ 새 화면
+            SoloStep.EXCHANGE_RATE_MODE  -> ExchangeRateModePlaceholder()         // 다음 단계용 placeholder
+            SoloStep.EXCHANGE_RATE_VALUE -> ExchangeRateValuePlaceholder()
+            SoloStep.RESULT              -> ResultPlaceholder()
         }
     }
 }
@@ -236,13 +241,48 @@ private fun SplitModeStep(
 }
 
 @Composable
-private fun PeopleCountPlaceholder() {
-    H2 { Text("SOLO N분의 1 계산 – 인원 수 입력 (준비 중)") }
+private fun PeopleCountStep(
+    uiState: SoloSplitUiState,
+    viewModel: SoloSplitViewModel
+) {
+    H2 { Text("SOLO N분의 1 계산 – 6단계") }
     P {
-        Text("다음 단계에서는 실제로 인원 수를 입력받아 N분의 1 계산을 진행합니다.")
+        Text("몇 명이서 나누시나요? 인원 수는 1 이상의 정수로 입력해주세요.")
+    }
+
+    Div({ classes(AppStyles.formColumn) }) {
+        Label(forId = "peopleCount") {
+            Text("인원 수")
+        }
+
+        // 🔽 type을 Number → Text로, min(...) 제거
+        Input(
+            type = InputType.Text,
+            attrs = {
+                id("peopleCount")
+                value(uiState.peopleCountInput)
+                onInput { ev -> viewModel.onPeopleCountChange(ev.value) }
+                placeholder("예: 3")
+                classes(AppStyles.textField)
+            }
+        )
+
+        uiState.peopleCountError?.let { msg ->
+            P({ classes(AppStyles.errorText) }) {
+                Text(msg)
+            }
+        }
+
+        Button(attrs = {
+            classes(AppStyles.primaryButton)
+            onClick {
+                viewModel.onPeopleCountSubmit()
+            }
+        }) {
+            Text("다음 (환율 선택)")
+        }
     }
 }
-
 
 @Composable
 private fun TipValueStep(
@@ -323,4 +363,22 @@ private fun TipValueStep(
             Text("다음 단계로 (분배 방식 선택)")
         }
     }
+}
+
+@Composable
+private fun ExchangeRateModePlaceholder() {
+    H2 { Text("환율 모드 선택 (준비 중)") }
+    P { Text("다음 단계에서 자동/수동/생략 모드를 선택할 수 있도록 구현할 예정입니다.") }
+}
+
+@Composable
+private fun ExchangeRateValuePlaceholder() {
+    H2 { Text("환율 값 입력 (준비 중)") }
+    P { Text("수동 입력 모드에서 환율 숫자를 입력할 수 있도록 구현할 예정입니다.") }
+}
+
+@Composable
+private fun ResultPlaceholder() {
+    H2 { Text("결과 화면 (준비 중)") }
+    P { Text("REST API 결과를 받아 총합 및 1인당 부담금, KRW 변환 값을 보여줄 예정입니다.") }
 }

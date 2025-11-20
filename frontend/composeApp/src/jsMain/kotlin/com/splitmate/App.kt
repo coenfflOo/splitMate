@@ -108,7 +108,6 @@ object AppStyles : StyleSheet() {
         property("gap", "12px")
     }
 
-    // SOLO 입력폼을 위한 간단 스타일도 추가해두면 편함
     val formColumn by style {
         display(DisplayStyle.Flex)
         flexDirection(FlexDirection.Column)
@@ -140,5 +139,29 @@ object AppStyles : StyleSheet() {
         display(DisplayStyle.Flex)
         justifyContent(JustifyContent.FlexStart)
         marginBottom(16.px)
+    }
+
+    val primaryButton by style {
+        padding(10.px, 16.px)
+        borderRadius(999.px)
+        border {
+            style(LineStyle.None)
+        }
+        backgroundColor(rgb(88, 101, 242))
+        color(Color.white)
+        fontSize(14.px)
+        fontWeight("600")
+        cursor("pointer")
+        property("transition", "background-color 0.15s ease, transform 0.08s ease")
+
+        hover {
+            backgroundColor(rgb(100, 115, 255))
+            property("transform", "translateY(-1px)")
+        }
+
+        active {
+            property("transform", "translateY(0)")
+            backgroundColor(rgb(70, 85, 220))
+        }
     }
 }

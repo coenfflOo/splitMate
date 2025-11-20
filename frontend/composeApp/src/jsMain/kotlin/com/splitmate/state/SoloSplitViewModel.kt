@@ -189,7 +189,42 @@ class SoloSplitViewModel {
         )
     }
 
-    fun onSplitModeMenuClicked() {
+    fun onPeopleCountChange(input: String) {
+        uiState = uiState.copy(
+            peopleCountInput = input,
+            peopleCountError = null
+        )
+    }
+
+    fun onPeopleCountSubmit(): Boolean {
+        val raw = uiState.peopleCountInput.trim()
+        val error = validatePeopleCount(raw)
+
+        if (error != null) {
+            uiState = uiState.copy(peopleCountError = error)
+            return false
+        }
+
+        uiState = uiState.copy(
+            peopleCountError = null,
+            step = SoloStep.EXCHANGE_RATE_MODE
+        )
+        return true
+    }
+
+    private fun validatePeopleCount(input: String): String? {
+        if (input.isBlank()) {
+            return "인원 수를 입력해주세요."
+        }
+
+        val n = input.toIntOrNull()
+            ?: return "인원 수는 숫자로 입력해주세요."
+
+        if (n < 1) {
+            return "인원 수는 1 이상의 정수여야 합니다."
+        }
+
+        return null
     }
 
 }

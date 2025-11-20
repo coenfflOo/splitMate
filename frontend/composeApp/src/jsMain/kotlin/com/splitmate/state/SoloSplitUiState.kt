@@ -15,7 +15,10 @@ data class SoloSplitUiState(
     val tipModeError: String? = null,
 
     val tipValueInput: String = "",
-    val tipValueError: String? = null
+    val tipValueError: String? = null,
+
+    val peopleCountInput: String = "",
+    val peopleCountError: String? = null
 ) {
     val canProceedFromTotal: Boolean
         get() = amountInput.isNotBlank() && amountError == null
