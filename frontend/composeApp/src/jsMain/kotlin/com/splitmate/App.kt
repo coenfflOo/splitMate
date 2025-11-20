@@ -1,6 +1,7 @@
 package com.splitmate
 
 import androidx.compose.runtime.*
+import com.splitmate.screens.GroupScreen
 import com.splitmate.screens.MenuSplitScreen
 import org.jetbrains.compose.web.css.*
 import org.jetbrains.compose.web.dom.*
@@ -37,13 +38,9 @@ fun App() {
                     goHome = { currentScreen = Screen.Home }
                 )
 
-                Screen.Group -> {
-                    // TODO: GROUP 모드 화면
-                    P { Text("GROUP 화면은 추후 구현 예정입니다.") }
-                    Button(attrs = { onClick { currentScreen = Screen.Home } }) {
-                        Text("← 홈으로")
-                    }
-                }
+                Screen.Group -> GroupScreen(
+                    goHome = { currentScreen = Screen.Home }
+                )
             }
         }
     }
