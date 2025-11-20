@@ -169,18 +169,18 @@ frontend/
 
 ### 4-3. 실시간 계산 입력 화면
 
-- [ ]  콘솔 엔진과 동일한 메시지 흐름에 따라 입력
-- [ ]  WebSocket으로 서버와 주고받기
+- [x]  콘솔 엔진과 동일한 메시지 흐름에 따라 입력
+- [x]  WebSocket으로 서버와 주고받기
 
 ### 4-4. 실시간 브로드캐스트
 
-- [ ]  서버 메시지 수신 시 UI 갱신
-- [ ]  같은 방 모든 멤버가 동일한 상태 표시
+- [x]  서버 메시지 수신 시 UI 갱신
+- [x]  같은 방 모든 멤버가 동일한 상태 표시
 
 ### 4-5. 에러 메시지 처리
 
-- [ ]  /topic/group/{roomId}.errors 구독
-- [ ]  INVALID_INPUT, ROOM_NOT_FOUND 등의 에러 표시
+- [x]  /topic/group/{roomId}.errors 구독
+- [x]  INVALID_INPUT, ROOM_NOT_FOUND 등의 에러 표시
 
 ---
 
