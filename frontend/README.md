@@ -186,9 +186,9 @@ frontend/
 
 ## 5. 상태 관리
 
-- [ ]  각 화면 단위 `ViewModel` 제공
-- [ ]  Compose State로 UI 자동 업데이트
-- [ ]  RoomState, ConversationOutput 모델을 백엔드 DTO와 동일하게 유지
+- [x]  각 화면 단위 `ViewModel` 제공
+- [x]  Compose State로 UI 자동 업데이트
+- [x]  RoomState, ConversationOutput 모델을 백엔드 DTO와 동일하게 유지
 
 ---
 
