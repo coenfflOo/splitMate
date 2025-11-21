@@ -6,16 +6,13 @@ import kotlinx.serialization.json.Json
 import org.w3c.dom.CloseEvent
 import org.w3c.dom.MessageEvent
 import org.w3c.dom.WebSocket
-
-private val json = Json {
-    ignoreUnknownKeys = true
-}
+import org.w3c.dom.events.Event
 
 class GroupStompClient(
     private val wsUrl: String = "ws://localhost:8080/ws"
 ) {
 
-    private val scope = MainScope()
+    private val scope = MainScope() // 지금은 안 써도 되지만 나중 확장용으로 남겨둬도 OK
 
     private var socket: WebSocket? = null
     private var currentRoomId: String? = null
@@ -77,13 +74,13 @@ class GroupStompClient(
             }
         }
 
-        ws.onclose = { _: CloseEvent ->
+        ws.onclose = { _: Event ->
             socket = null
             currentRoomId = null
             onDisconnected?.invoke()
         }
 
-        ws.onerror = {
+        ws.onerror = { _: Event ->
             onConnectionError?.invoke("WebSocket 오류가 발생했습니다.")
         }
     }
@@ -103,8 +100,10 @@ class GroupStompClient(
             return
         }
 
-        val payload = GroupInputPayload(memberId = memberId, input = input)
-        val body = json.encodeToString(GroupInputPayload.serializer(), payload)
+        // ⚠️ 여기서는 단순 문자열 JSON 조합 (실제로는 큰 문제 없을 입력이라 가정)
+        val escapedMember = memberId.replace("\"", "\\\"")
+        val escapedInput = input.replace("\"", "\\\"")
+        val body = """{"memberId":"$escapedMember","input":"$escapedInput"}"""
 
         sendFrame(
             command = "SEND",
@@ -162,38 +161,60 @@ class GroupStompClient(
         when (command) {
             "MESSAGE" -> {
                 val destination = headers["destination"].orEmpty()
-                scope.launch {
-                    if (destination.endsWith(".errors")) {
-                        // 에러 토픽
-                        runCatching {
-                            json.decodeFromString(WsErrorMessage.serializer(), body)
-                        }.onSuccess { err ->
-                            onErrorMessage?.invoke(err)
-                        }.onFailure {
-                            onConnectionError?.invoke("에러 메시지 파싱 실패: $body")
-                        }
-                    } else {
-                        // 일반 그룹 메시지
-                        runCatching {
-                            json.decodeFromString(WsGroupMessage.serializer(), body)
-                        }.onSuccess { msg ->
-                            onGroupMessage?.invoke(msg)
-                        }.onFailure {
-                            onConnectionError?.invoke("메시지 파싱 실패: $body")
-                        }
-                    }
+                if (destination.endsWith(".errors")) {
+                    // 에러 토픽
+                    handleErrorBody(body)
+                } else {
+                    // 일반 그룹 메시지
+                    handleGroupBody(body)
                 }
             }
 
             "ERROR" -> {
-                scope.launch {
-                    onConnectionError?.invoke("STOMP ERROR 프레임 수신: $body")
-                }
+                onConnectionError?.invoke("STOMP ERROR 프레임 수신: $body")
             }
 
             else -> {
                 // CONNECTED 등은 현재 특별한 처리 없이 무시
             }
         }
+    }
+
+    private fun handleErrorBody(body: String) {
+        // body: {"code":"ROOM_NOT_FOUND","message":"..."}
+        val dyn = JSON.parse<dynamic>(body)
+        val code = dyn.code as? String ?: "UNKNOWN"
+        val msg = dyn.message as? String ?: "알 수 없는 에러"
+
+        onErrorMessage?.invoke(
+            WsErrorMessage(code = code, message = msg)
+        )
+    }
+
+    private fun handleGroupBody(body: String) {
+        // body: {"roomId":"...","members":["a","b"],"message":"...","nextStep":"..."}
+        val dyn = JSON.parse<dynamic>(body)
+
+        val roomId = dyn.roomId as? String ?: ""
+        val message = dyn.message as? String ?: ""
+        val nextStep = dyn.nextStep as? String
+
+        val membersDyn = dyn.members
+        val members: List<String> =
+            if (membersDyn != null) {
+                val arr = membersDyn.unsafeCast<Array<dynamic>>()
+                arr.mapNotNull { it as? String }
+            } else {
+                emptyList()
+            }
+
+        onGroupMessage?.invoke(
+            WsGroupMessage(
+                roomId = roomId,
+                members = members,
+                message = message,
+                nextStep = nextStep
+            )
+        )
     }
 }
