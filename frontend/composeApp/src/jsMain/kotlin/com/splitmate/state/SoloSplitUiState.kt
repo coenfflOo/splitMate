@@ -23,6 +23,10 @@ data class SoloSplitUiState(
 
     val exchangeRateInput: String = "",
     val exchangeRateError: String? = null,
+
+    val isLoading: Boolean = false,
+    val apiError: String? = null,
+    val result: SoloResult? = null
 ) {
     val canProceedFromTotal: Boolean
         get() = amountInput.isNotBlank() && amountError == null

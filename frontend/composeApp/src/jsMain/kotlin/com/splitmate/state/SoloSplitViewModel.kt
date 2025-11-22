@@ -3,9 +3,16 @@ package com.splitmate.state
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import com.splitmate.api.ExchangeOptionRequestDto
+import com.splitmate.api.SplitEvenRequestDto
+import com.splitmate.api.TipRequestDto
+import com.splitmate.api.callSplitEven
+import kotlinx.coroutines.MainScope
+import kotlinx.coroutines.launch
 
 class SoloSplitViewModel {
 
+    private val scope = MainScope()
     var uiState by mutableStateOf(SoloSplitUiState())
         private set
 
@@ -361,12 +368,108 @@ class SoloSplitViewModel {
     }
 
     private fun Double.format2(): String =
-        js("this.toFixed(2)") as String
+        (this.asDynamic().toFixed(2) as String)
 
     private fun Long.formatWithComma(): String {
         return toString().reversed()
             .chunked(3)
             .joinToString(",")
             .reversed()
+    }
+
+    private fun buildSplitEvenRequestOrNull(): SplitEvenRequestDto? {
+        val s = uiState
+
+        val baseStr = s.amountInput.replace(",", "").trim()
+        val base = baseStr.toDoubleOrNull() ?: return null
+
+        val taxStrRaw = s.taxInput.trim()
+        val taxStr = when (taxStrRaw.lowercase()) {
+            "없음", "none", "no" -> "0"
+            else -> taxStrRaw.replace(",", "")
+        }
+        taxStr.toDoubleOrNull() ?: return null
+
+        val tipModeEnum = s.tipMode ?: SoloTipMode.NONE
+        val tipDto = when (tipModeEnum) {
+            SoloTipMode.PERCENT -> {
+                val p = s.tipValueInput.replace(",", "").toDoubleOrNull() ?: return null
+                TipRequestDto(mode = "PERCENT", percent = p.toInt())
+            }
+            SoloTipMode.ABSOLUTE -> {
+                val abs = s.tipValueInput.replace(",", "").toDoubleOrNull() ?: return null
+                TipRequestDto(mode = "ABSOLUTE", absolute = abs.toString())
+            }
+            SoloTipMode.NONE -> TipRequestDto(mode = "NONE")
+        }
+
+        val people = s.peopleCountInput.trim().toIntOrNull() ?: return null
+        if (people <= 0) return null
+
+        val exchangeModeEnum = s.exchangeMode ?: SoloExchangeMode.NONE
+        val exchangeDto = when (exchangeModeEnum) {
+            SoloExchangeMode.AUTO -> ExchangeOptionRequestDto(mode = "AUTO")
+            SoloExchangeMode.NONE -> ExchangeOptionRequestDto(mode = "NONE")
+            SoloExchangeMode.MANUAL -> {
+                val rateStr = s.exchangeRateInput.replace(",", "").trim()
+                rateStr.toDoubleOrNull() ?: return null
+                ExchangeOptionRequestDto(mode = "MANUAL", manualRate = rateStr)
+            }
+        }
+
+        return SplitEvenRequestDto(
+            currency = "CAD",
+            totalAmount = base.toString(),
+            taxAmount = taxStr,
+            tip = tipDto,
+            peopleCount = people,
+            exchange = exchangeDto
+        )
+    }
+
+    fun requestBackendResult() {
+        // 이미 결과가 있거나 로딩 중이면 다시 요청하지 않음
+        if (uiState.isLoading || uiState.result != null) return
+
+        val request = buildSplitEvenRequestOrNull()
+        if (request == null) {
+            uiState = uiState.copy(
+                apiError = "입력 값이 유효하지 않아 계산 요청을 보낼 수 없습니다."
+            )
+            return
+        }
+
+        scope.launch {
+            uiState = uiState.copy(
+                isLoading = true,
+                apiError = null,
+                result = null
+            )
+
+            runCatching {
+                callSplitEven(request)
+            }.onSuccess { response ->
+                val totalCadStr = "${response.totalAmountCad} CAD"
+                val perPersonCadStr = "${response.perPersonCad} CAD"
+
+                val perPersonKrwStr = response.perPersonKrw?.let { krw ->
+                    "$krw KRW"
+                }
+
+                uiState = uiState.copy(
+                    isLoading = false,
+                    result = SoloResult(
+                        totalCad = totalCadStr,
+                        perPersonCad = perPersonCadStr,
+                        perPersonKrw = perPersonKrwStr
+                    )
+                )
+            }.onFailure { e ->
+                uiState = uiState.copy(
+                    isLoading = false,
+                    apiError = "계산 요청 중 오류가 발생했습니다: ${e.message}"
+                )
+            }
+        }
     }
 }

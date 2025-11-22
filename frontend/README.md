@@ -196,7 +196,7 @@ frontend/
 
 ### 6-1. REST
 
-- [ ]  `/api/split/even`
+- [x]  `/api/split/even`
 - [ ]  `/api/split/by-menu`
 - [ ]  `/api/group/*`
 

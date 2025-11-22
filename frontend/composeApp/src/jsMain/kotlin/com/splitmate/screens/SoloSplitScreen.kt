@@ -11,6 +11,7 @@ import org.jetbrains.compose.web.attributes.disabled
 import org.jetbrains.compose.web.attributes.placeholder
 import org.jetbrains.compose.web.dom.*
 import org.jetbrains.compose.web.dom.Input
+import androidx.compose.runtime.LaunchedEffect
 
 
 @Composable
@@ -38,7 +39,7 @@ fun SoloSplitScreen(
             SoloStep.PEOPLE_COUNT        -> PeopleCountStep(uiState, viewModel)
             SoloStep.EXCHANGE_RATE_MODE  -> ExchangeRateModePlaceholder(uiState, viewModel)
             SoloStep.EXCHANGE_RATE_VALUE -> ExchangeRateValuePlaceholder(uiState, viewModel)
-            SoloStep.RESULT              -> ResultPlaceholder(viewModel, goHome)
+            SoloStep.RESULT -> ResultPlaceholder(uiState, viewModel, goHome)
         }
     }
 }
@@ -443,29 +444,50 @@ private fun ExchangeRateValuePlaceholder(
 
 @Composable
 private fun ResultPlaceholder(
+    uiState: SoloSplitUiState,
     viewModel: SoloSplitViewModel,
     goHome: () -> Unit
-){
-    val result = viewModel.computeResult()
+) {
+    // RESULT 화면에 진입하면 한 번만 백엔드에 계산 요청
+    LaunchedEffect(Unit) {
+        viewModel.requestBackendResult()
+    }
 
     H2 { Text("9. 계산 결과") }
 
-    if (result == null) {
-        P {
-            Text("입력 값에 문제가 있어 결과를 계산할 수 없습니다. 이전 단계로 돌아가 다시 시도해주세요.")
+    when {
+        uiState.isLoading -> {
+            P {
+                Text("계산 중입니다... 잠시만 기다려주세요.")
+            }
         }
-    } else {
-        Div({ classes(AppStyles.formColumn) }) {
-            P {
-                Text("총 금액 (CAD): ${result.totalCad}")
-            }
-            P {
-                Text("1인당 (CAD): ${result.perPersonCad}")
-            }
 
-            result.perPersonKrw?.let { krw ->
+        uiState.apiError != null -> {
+            P({ classes(AppStyles.errorText) }) {
+                Text(uiState.apiError)
+            }
+        }
+
+        uiState.result == null -> {
+            P {
+                Text("결과가 아직 준비되지 않았습니다. 입력 값을 다시 확인해주세요.")
+            }
+        }
+
+        else -> {
+            val result = uiState.result!!
+            Div({ classes(AppStyles.formColumn) }) {
                 P {
-                    Text("1인당 (KRW): $krw")
+                    Text("총 금액 (CAD): ${result.totalCad}")
+                }
+                P {
+                    Text("1인당 (CAD): ${result.perPersonCad}")
+                }
+
+                result.perPersonKrw?.let { krw ->
+                    P {
+                        Text("1인당 (KRW): $krw")
+                    }
                 }
             }
         }
