@@ -100,7 +100,6 @@ class GroupStompClient(
             return
         }
 
-        // ⚠️ 여기서는 단순 문자열 JSON 조합 (실제로는 큰 문제 없을 입력이라 가정)
         val escapedMember = memberId.replace("\"", "\\\"")
         val escapedInput = input.replace("\"", "\\\"")
         val body = """{"memberId":"$escapedMember","input":"$escapedInput"}"""
@@ -108,7 +107,8 @@ class GroupStompClient(
         sendFrame(
             command = "SEND",
             headers = mapOf(
-                "destination" to "/app/group/$roomId/messages"
+                "destination" to "/app/group/$roomId/messages",
+                "content-type" to "application/json"
             ),
             body = body
         )

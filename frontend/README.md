@@ -198,7 +198,7 @@ frontend/
 
 - [x]  `/api/split/even`
 - [x]  `/api/split/by-menu`
-- [ ]  `/api/group/*`
+- [x]  `/api/group/*`
 
 ### 6-2. WebSocket
 
