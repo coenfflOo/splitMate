@@ -4,11 +4,8 @@ package application.conversation
 import application.conversation.ConversationContext
 import domain.conversation.ConversationOutput
 import domain.conversation.ConversationStep
+import org.springframework.stereotype.Component
 
-/**
- * GroupConversationService가 의존하는 포트.
- * ConversationEngine이 이 인터페이스를 구현하도록 하면 됨.
- */
 interface ConversationFlow {
     fun start(): ConversationOutput
 

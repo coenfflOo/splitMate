@@ -1,4 +1,3 @@
-// src/main/kotlin/adapter/http/GroupController.kt
 package adapter.http
 
 import adapter.http.dto.*
