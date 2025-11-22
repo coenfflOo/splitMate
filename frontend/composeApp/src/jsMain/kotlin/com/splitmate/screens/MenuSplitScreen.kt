@@ -70,11 +70,37 @@ fun MenuSplitScreen(
             state = state,
             onToggle = { menuId, participantId -> viewModel.toggleAssignment(menuId, participantId) },
             onPrev = { viewModel.backToParticipantsStep() },
-            onNext = { viewModel.goToResultStep() }
+            onNext = { viewModel.goToTaxStep() }
+        )
+
+        MenuStep.TAX -> MenuTaxStep(
+            state = state,
+            viewModel = viewModel
+        )
+
+        MenuStep.TIP_MODE -> MenuTipModeStep(
+            state = state,
+            viewModel = viewModel
+        )
+
+        MenuStep.TIP_VALUE -> MenuTipValueStep(
+            state = state,
+            viewModel = viewModel
+        )
+
+        MenuStep.EXCHANGE_MODE -> MenuExchangeModeStep(
+            state = state,
+            viewModel = viewModel
+        )
+
+        MenuStep.EXCHANGE_RATE_VALUE -> MenuExchangeRateValueStep(
+            state = state,
+            viewModel = viewModel
         )
 
         MenuStep.RESULT -> MenuResultStep(
             state = state,
+            viewModel = viewModel,
             onRestart = { viewModel.backToMenuStep() }
         )
     }
@@ -330,67 +356,230 @@ private fun AssignmentsStep(
     }
 }
 
+@Composable
+private fun MenuTaxStep(
+    state: MenuSplitUiState,
+    viewModel: MenuSplitViewModel
+) {
+    H3 { Text("4단계: 세금 입력") }
+    P { Text("세금 금액을 입력해주세요. 없으면 '없음'을 눌러주세요.") }
+
+    Div({ classes(AppStyles.formColumn) }) {
+        Input(type = InputType.Text, attrs = {
+            classes(AppStyles.textField)
+            value(state.taxInput)
+            onInput { ev -> viewModel.onTaxChange(ev.value) }
+            attr("placeholder", "예: 2.40 또는 없음")
+        })
+
+        Button(attrs = { onClick { viewModel.onTaxNoneClick() } }) {
+            Text("세금 없음")
+        }
+
+        state.taxError?.let { P({ classes(AppStyles.errorText) }) { Text(it) } }
+
+        Div({ classes(AppStyles.buttonRow) }) {
+            Button(attrs = { onClick { viewModel.backToAssignmentsStep() } }) {
+                Text("← 이전")
+            }
+            Button(attrs = { onClick { viewModel.onTaxSubmit() } }) {
+                Text("다음 (팁 모드)")
+            }
+        }
+    }
+}
+
+@Composable
+private fun MenuTipModeStep(
+    state: MenuSplitUiState,
+    viewModel: MenuSplitViewModel
+) {
+    H3 { Text("5단계: 팁 입력 방식") }
+
+    Div({ classes(AppStyles.formColumn) }) {
+        Div({ classes(AppStyles.buttonRow) }) {
+            Button(attrs = { onClick { viewModel.onTipModeSelected(SoloTipMode.PERCENT) } }) {
+                Text("% 퍼센트")
+            }
+            Button(attrs = { onClick { viewModel.onTipModeSelected(SoloTipMode.ABSOLUTE) } }) {
+                Text("$ 금액")
+            }
+            Button(attrs = { onClick { viewModel.onTipModeSelected(SoloTipMode.NONE) } }) {
+                Text("팁 없음")
+            }
+        }
+
+        state.tipModeError?.let { P({ classes(AppStyles.errorText) }) { Text(it) } }
+
+        Div({ classes(AppStyles.buttonRow) }) {
+            Button(attrs = { onClick { viewModel.backToTaxStep() } }) {
+                Text("← 이전")
+            }
+            Button(attrs = { onClick { viewModel.onTipModeProceed() } }) {
+                Text("다음")
+            }
+        }
+    }
+}
+
+@Composable
+private fun MenuTipValueStep(
+    state: MenuSplitUiState,
+    viewModel: MenuSplitViewModel
+) {
+    H3 { Text("6단계: 팁 값 입력") }
+
+    val mode = state.tipMode
+
+    val placeholderText = when (mode) {
+        SoloTipMode.PERCENT -> "예: 15"
+        SoloTipMode.ABSOLUTE -> "예: 10.00"
+        else -> ""
+    }
+
+    Div({ classes(AppStyles.formColumn) }) {
+        Input(type = InputType.Text, attrs = {
+            classes(AppStyles.textField)
+            value(state.tipValueInput)
+            onInput { ev -> viewModel.onTipValueChange(ev.value) }
+            if (placeholderText.isNotBlank()) attr("placeholder", placeholderText)
+        })
+
+        state.tipValueError?.let { P({ classes(AppStyles.errorText) }) { Text(it) } }
+
+        Div({ classes(AppStyles.buttonRow) }) {
+            Button(attrs = { onClick { viewModel.backToTipModeStep() } }) {
+                Text("← 이전")
+            }
+            Button(attrs = { onClick { viewModel.onTipValueSubmit() } }) {
+                Text("다음 (환율)")
+            }
+        }
+    }
+}
+
+@Composable
+private fun MenuExchangeModeStep(
+    state: MenuSplitUiState,
+    viewModel: MenuSplitViewModel
+) {
+    H3 { Text("7단계: 환율 모드 선택") }
+
+    Div({ classes(AppStyles.formColumn) }) {
+        Button(attrs = { onClick { viewModel.onExchangeModeSelected(SoloExchangeMode.AUTO) } }) {
+            Text("1) 오늘 환율 자동 조회")
+        }
+        Button(attrs = { onClick { viewModel.onExchangeModeSelected(SoloExchangeMode.MANUAL) } }) {
+            Text("2) 환율 직접 입력")
+        }
+        Button(attrs = { onClick { viewModel.onExchangeModeSelected(SoloExchangeMode.NONE) } }) {
+            Text("3) KRW 변환 없이 보기")
+        }
+
+        state.exchangeModeError?.let { P({ classes(AppStyles.errorText) }) { Text(it) } }
+
+        Div({ classes(AppStyles.buttonRow) }) {
+            Button(attrs = { onClick { viewModel.backToTipValueOrModeStep() } }) {
+                Text("← 이전")
+            }
+            Button(attrs = { onClick { viewModel.onExchangeModeSubmit() } }) {
+                Text("다음")
+            }
+        }
+    }
+}
+
+@Composable
+private fun MenuExchangeRateValueStep(
+    state: MenuSplitUiState,
+    viewModel: MenuSplitViewModel
+) {
+    H3 { Text("8단계: 환율 직접 입력") }
+
+    Div({ classes(AppStyles.formColumn) }) {
+        Input(type = InputType.Text, attrs = {
+            classes(AppStyles.textField)
+            value(state.exchangeRateInput)
+            onInput { ev -> viewModel.onExchangeRateValueChange(ev.value) }
+            attr("placeholder", "예: 1000")
+        })
+
+        state.exchangeRateError?.let { P({ classes(AppStyles.errorText) }) { Text(it) } }
+
+        Div({ classes(AppStyles.buttonRow) }) {
+            Button(attrs = { onClick { viewModel.backToExchangeModeStep() } }) {
+                Text("← 이전")
+            }
+            Button(attrs = { onClick { viewModel.onExchangeRateValueSubmit() } }) {
+                Text("결과 보기")
+            }
+        }
+    }
+}
 
 @Composable
 private fun MenuResultStep(
     state: MenuSplitUiState,
+    viewModel: MenuSplitViewModel,
     onRestart: () -> Unit
 ) {
-    H3 { Text("4단계: 결과") }
+    H3 { Text("9단계: 결과") }
 
-    val result = state.result
-    if (result == null) {
-        P {
-            Text("아직 결과가 없습니다. 이전 단계에서 메뉴와 참가자를 선택해주세요.")
-        }
-        Button(attrs = { onClick { onRestart() } }) {
-            Text("처음부터 다시")
+    LaunchedEffect(Unit) {
+        viewModel.fetchBackendResult()   // ✅ RESULT 들어오면 호출
+    }
+
+    if (state.isLoading) {
+        P { Text("계산 중입니다...") }
+        return
+    }
+
+    state.apiError?.let {
+        P({ classes(AppStyles.errorText) }) { Text(it) }
+        Button(attrs = { onClick { viewModel.fetchBackendResult() } }) {
+            Text("다시 시도")
         }
         return
     }
 
-    Div({ classes(AppStyles.formColumn) }) {
-        P {
-            Text("총 메뉴 금액 (세금/팁 제외): ${result.totalAmount.format2()} CAD")
-        }
+    val result = state.result ?: run {
+        P { Text("아직 결과가 없습니다.") }
+        return
+    }
 
-        Table({
-            style {
-                property("border-collapse", "collapse")
-                fontSize(14.px)
-                marginTop(8.px)
+    // ✅ 여기부터는 result를 백엔드 기준으로 표시
+    P { Text("총 결제 금액: ${result.totalAmountCad} CAD") }
+    result.exchangeMode?.let { mode ->
+        P { Text("환율 모드: $mode / 환율: ${result.exchangeRate ?: "-"}") }
+    }
+
+    Table {
+        Thead {
+            Tr {
+                Th { Text("참가자") }
+                Th { Text("Subtotal") }
+                Th { Text("Tax") }
+                Th { Text("Tip") }
+                Th { Text("Total") }
+                Th { Text("KRW") }
             }
-        }) {
-            Thead {
+        }
+        Tbody {
+            result.perPersonTotals.forEach { row ->
                 Tr {
-                    Th { Text("참가자") }
-                    Th { Text("메뉴 subtotal (CAD)") }
-                }
-            }
-            Tbody {
-                result.perPersonTotals.forEach { row ->
-                    Tr {
-                        Td { Text(row.participantName) }
-                        Td { Text(row.subtotal.format2()) }
-                    }
+                    Td { Text(row.participantName) }
+                    Td { Text(row.subtotalCad) }
+                    Td { Text(row.taxShareCad) }
+                    Td { Text(row.tipShareCad) }
+                    Td { Text(row.totalCad) }
+                    Td { Text(row.totalKrw ?: "-") }
                 }
             }
         }
+    }
 
-        P {
-            Text("※ 실제 서비스에서는 여기서 세금/팁 비례 분배 및 KRW 변환 결과를 백엔드 API와 연동하여 표시합니다.")
-        }
-
-        Div({
-            classes(AppStyles.buttonRow)
-            style {
-                justifyContent(JustifyContent.SpaceBetween)
-            }
-        }) {
-            Button(attrs = { onClick { onRestart() } }) {
-                Text("다시 계산하기")
-            }
-        }
+    Button(attrs = { onClick { onRestart() } }) {
+        Text("다시 계산하기")
     }
 }
 

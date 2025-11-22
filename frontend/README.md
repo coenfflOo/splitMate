@@ -197,7 +197,7 @@ frontend/
 ### 6-1. REST
 
 - [x]  `/api/split/even`
-- [ ]  `/api/split/by-menu`
+- [x]  `/api/split/by-menu`
 - [ ]  `/api/group/*`
 
 ### 6-2. WebSocket
