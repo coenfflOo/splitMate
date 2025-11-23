@@ -3,21 +3,39 @@ package application.conversation
 import domain.conversation.ConversationStep
 import domain.money.Money
 import domain.receipt.TipMode
+import domain.split.SplitMode
 import java.math.BigDecimal
 
 data class ConversationContext(
-    val baseAmount: Money? = null,          // 총 결제 금액 (CAD)
-    val taxAmount: Money? = null,           // 세금 금액 (CAD)
+    val baseAmount: Money? = null,
+    val taxAmount: Money? = null,
 
-    val tipMode: TipMode? = null,           // PERCENT / ABSOLUTE / NONE
-    val tipPercent: Int? = null,            // 퍼센트 모드일 때 값 (예: 15)
-    val tipAbsolute: Money? = null,         // 금액 모드일 때 값 (예: $10.00)
+    val tipMode: TipMode? = null,
+    val tipPercent: Int? = null,
+    val tipAbsolute: Money? = null,
 
-    val peopleCount: Int? = null,           // 인원 수
+    val peopleCount: Int? = null,
 
-    val wantKrw: Boolean = false,           // KRW로도 보고 싶은지
-    val manualRate: BigDecimal? = null,      // 1 CAD = ? KRW (수동 또는 자동 조회 값)
+    val splitMode: SplitMode? = null,
+
+    val menuItems: List<MenuItemInput> = emptyList(),
+    val menuParticipants: List<MenuParticipantInput> = emptyList(),
+    val menuAssignments: Map<String, List<String>> = emptyMap(),
+
+    val wantKrw: Boolean = false,
+    val manualRate: BigDecimal? = null,
 
     val failureCount: Int = 0,
     val lastStep: ConversationStep? = null
+)
+
+data class MenuItemInput(
+    val id: String,
+    val name: String,
+    val priceCad: BigDecimal
+)
+
+data class MenuParticipantInput(
+    val id: String,
+    val name: String
 )

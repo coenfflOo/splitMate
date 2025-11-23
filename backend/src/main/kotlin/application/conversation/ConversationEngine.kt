@@ -40,8 +40,24 @@ class ConversationEngine(
             ConversationStep.ASK_TIP_VALUE -> handleTipValue(input, context)
             ConversationStep.ASK_SPLIT_MODE -> handleSplitMode(input, context)
             ConversationStep.ASK_PEOPLE_COUNT -> handlePeopleCount(input, context)
+
+            ConversationStep.ASK_MENU_ITEMS,
+            ConversationStep.ASK_MENU_PARTICIPANTS,
+            ConversationStep.ASK_MENU_ASSIGNMENTS -> ConversationOutput(
+                nextStep = ConversationStep.ASK_TOTAL_AMOUNT,
+                message = """
+                이 콘솔 엔진에서는 메뉴별 계산 단계는 지원하지 않습니다.
+                총 결제 금액부터 다시 입력해주세요. (예: 27.40)
+            """.trimIndent(),
+                context = context.copy(
+                    failureCount = 0,
+                    lastStep = ConversationStep.ASK_TOTAL_AMOUNT
+                )
+            )
+
             ConversationStep.ASK_EXCHANGE_RATE_MODE -> handleExchangeMode(input, context)
             ConversationStep.ASK_EXCHANGE_RATE_VALUE -> handleExchangeValue(input, context)
+
             ConversationStep.SHOW_RESULT ->
                 ConversationOutput(
                     nextStep = ConversationStep.SHOW_RESULT,
@@ -49,7 +65,7 @@ class ConversationEngine(
                     context = context,
                     isFinished = true
                 )
-            ConversationStep.RESTART_CONFIRM -> handleRestartConfirm(input, context) // 🔽 추가
+            ConversationStep.RESTART_CONFIRM -> handleRestartConfirm(input, context)
         }
     }
 
@@ -349,11 +365,9 @@ class ConversationEngine(
     ): ConversationOutput {
         return when (input.trim().lowercase()) {
             "y", "yes", "예", "네" -> {
-                // 전체 상태 초기화 + 처음 질문으로
                 start()
             }
             "n", "no", "아니오" -> {
-                // 직전 단계로 돌아가서 다시 시도
                 val step = context.lastStep ?: ConversationStep.ASK_TOTAL_AMOUNT
 
                 val msg = when (step) {
@@ -381,6 +395,16 @@ class ConversationEngine(
                     ConversationStep.ASK_EXCHANGE_RATE_VALUE ->
                         "환율을 숫자로 입력해주세요. 예) 1000"
 
+                    // 🔽 새로 추가: 메뉴 관련 단계 (그냥 안내만)
+                    ConversationStep.ASK_MENU_ITEMS ->
+                        "메뉴를 다시 입력해주세요.\n예) 파스타 18.9; 피자 22; 콜라 3"
+
+                    ConversationStep.ASK_MENU_PARTICIPANTS ->
+                        "참가자 이름을 다시 입력해주세요.\n예) 민지, 철수, 영희"
+
+                    ConversationStep.ASK_MENU_ASSIGNMENTS ->
+                        "메뉴별로 누가 먹었는지 다시 지정해주세요.\n예) m1:p1,p2; m2:p2; m3:p1,p3"
+
                     ConversationStep.SHOW_RESULT ->
                         "이미 계산이 완료되었습니다."
 
@@ -388,7 +412,7 @@ class ConversationEngine(
                         "처음부터 다시 시작하시겠습니까? (Y/N)"
                 }
 
-                ConversationOutput(
+                return ConversationOutput(
                     nextStep = step,
                     message = msg,
                     context = context.copy(failureCount = 0)
@@ -403,8 +427,6 @@ class ConversationEngine(
             }
         }
     }
-
-    // ---------------- 요약 + KRW 변환 ----------------
 
     private fun summarize(context: ConversationContext): ConversationOutput {
         // 1. 기본 값 꺼내기
@@ -484,7 +506,6 @@ class ConversationEngine(
     ): ConversationOutput {
         val newCount = context.failureCount + 1
 
-        // 🔽 3번 이상 연속 실패 시 재시작 여부 확인 단계로 전환
         if (newCount >= 3) {
             val msg = buildString {
                 appendLine(reason)
@@ -515,7 +536,7 @@ class ConversationEngine(
                 "$reason\n팁 값을 입력해주세요."
 
             ConversationStep.ASK_SPLIT_MODE ->
-                "$reason\n분배 방식을 선택해주세요. 1) N분의 1"
+                "$reason\n분배 방식을 입력해주세요. 1) N분의 1"
 
             ConversationStep.ASK_PEOPLE_COUNT ->
                 "$reason\n인원 수를 입력해주세요. (예: 3)"
@@ -525,6 +546,16 @@ class ConversationEngine(
 
             ConversationStep.ASK_EXCHANGE_RATE_VALUE ->
                 "$reason\n환율을 숫자로 입력해주세요. 예) 1000"
+
+            // 🔽 새로 추가
+            ConversationStep.ASK_MENU_ITEMS ->
+                "$reason\n메뉴를 입력해주세요.\n예) 파스타 18.9; 피자 22; 콜라 3"
+
+            ConversationStep.ASK_MENU_PARTICIPANTS ->
+                "$reason\n참가자 이름을 쉼표로 구분해 입력해주세요.\n예) 민지, 철수, 영희"
+
+            ConversationStep.ASK_MENU_ASSIGNMENTS ->
+                "$reason\n메뉴별로 누가 먹었는지 지정해주세요.\n예) m1:p1,p2; m2:p2; m3:p1,p3"
 
             ConversationStep.SHOW_RESULT ->
                 reason
@@ -540,7 +571,6 @@ class ConversationEngine(
         )
     }
 
-    // "10.00 CAD", "10,000.00 KRW" 형태를 만족하도록 포맷
     private fun formatMoney(m: Money): String {
         val plain = m.amount.setScale(2, RoundingMode.HALF_UP).toPlainString()
 

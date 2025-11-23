@@ -445,12 +445,12 @@ com.splitmate
         - `id: RoomId`
         - `members: Set<MemberId>`
         - `lastOutput: ConversationOutput`
-- [ ] (선택) 방 상태를 표현하는 `RoomStatus` enum 정의 (`OPEN`, `CLOSED` 등)
+- [ ] 방 상태를 표현하는 `RoomStatus` enum 정의 (`OPEN`, `CLOSED` 등)
 
 **테스트**
 
 - [x] `createRoom()` 후 `getRoom()`으로 조회 시 `members`에 생성자가 포함되고 `lastOutput`이 초기화되어 있는지 테스트
-- [ ] (선택) `CLOSED` 상태에서 추가 입력을 막을 수 있도록 하는 정책을 테스트
+- [ ] `CLOSED` 상태에서 추가 입력을 막을 수 있도록 하는 정책을 테스트
 
 ---
 
@@ -530,7 +530,7 @@ com.splitmate
 
 - [x]  클라이언트 → 서버 메시지 엔드포인트 정의
 - [x]  서버 → 클라이언트 브로드캐스트 채널 정의
-- [ ]  (선택) join/leave 이벤트용 타입 분리
+- [ ]  join/leave 이벤트용 타입 분리
 
 **테스트**
 

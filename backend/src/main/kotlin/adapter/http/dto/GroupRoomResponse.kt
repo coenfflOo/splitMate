@@ -4,5 +4,7 @@ data class GroupRoomResponse(
     val roomId: String,
     val members: List<String>,
     val message: String,
-    val nextStep: String
+    val nextStep: String,
+    val senderId: String? = null,
+    val messageType: String = "SYSTEM"
 )

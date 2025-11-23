@@ -26,23 +26,44 @@ class GroupWebSocketController(
         @Payload message: GroupMessageRequest
     ) {
         try {
-            // 1) 도메인 서비스 호출 (정상 흐름)
+            val input = message.input
+
+            if (input.startsWith("CHAT:")) {
+                val chatText = input.removePrefix("CHAT:").trim()
+
+                val state = groupService.getRoom(RoomId(roomId))
+                    ?: throw RoomNotFoundException(RoomId(roomId))
+
+                val response = GroupRoomResponse(
+                    roomId = state.id.value,
+                    members = state.members.map { it.value }.sorted(),
+                    message = chatText,
+                    nextStep = state.lastOutput.nextStep.name,
+                    senderId = message.memberId,
+                    messageType = "CHAT"
+                )
+
+                messagingTemplate.convertAndSend("/topic/group/$roomId", response)
+                return
+            }
+
             val state = groupService.handleMessage(
                 RoomId(roomId),
                 MemberId(message.memberId),
-                message.input
+                input
             )
 
-            // 2) RoomState → GroupRoomResponse 변환
             val response = GroupRoomResponse(
                 roomId = state.id.value,
                 members = state.members.map { it.value }.sorted(),
                 message = state.lastOutput.message,
-                nextStep = state.lastOutput.nextStep.name
+                nextStep = state.lastOutput.nextStep.name,
+                senderId = null,
+                messageType = "SYSTEM"
             )
 
-            // 3) 정상 응답 브로드캐스트
             messagingTemplate.convertAndSend("/topic/group/$roomId", response)
+
         } catch (e: RoomNotFoundException) {
             sendError(roomId, "ROOM_NOT_FOUND", e.message ?: "Room not found: $roomId")
         } catch (e: IllegalArgumentException) {
