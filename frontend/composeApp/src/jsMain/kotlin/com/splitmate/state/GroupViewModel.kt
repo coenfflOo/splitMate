@@ -80,7 +80,8 @@ class GroupViewModel {
                     )
                 )
             }.onSuccess { resp ->
-                // 1) REST 결과로 상태 동기화
+                socketClient.connect(resp.roomId)
+
                 uiState = uiState.copy(
                     isJoined = true,
                     joinedRoomId = resp.roomId,
@@ -92,8 +93,6 @@ class GroupViewModel {
                     error = null
                 )
 
-                socketClient.connect(resp.roomId)
-
             }.onFailure { e ->
                 uiState = uiState.copy(
                     error = "방 생성 실패: ${e.message}",
@@ -103,7 +102,6 @@ class GroupViewModel {
         }
     }
 
-    /** ✅ REST로 기존 방 입장 → 성공 시 WS 연결 */
     fun joinExistingRoom() {
         val roomId = uiState.roomIdInput.trim()
         val memberId = uiState.memberIdInput.trim()
@@ -125,6 +123,8 @@ class GroupViewModel {
                     req = GroupJoinRoomRequestDto(memberId)
                 )
             }.onSuccess { resp ->
+                socketClient.connect(resp.roomId)
+
                 uiState = uiState.copy(
                     isJoined = true,
                     joinedRoomId = resp.roomId,
@@ -135,9 +135,6 @@ class GroupViewModel {
                     info = "입장 완료. WebSocket 연결을 시작합니다.",
                     error = null
                 )
-
-                socketClient.connect(resp.roomId)
-
             }.onFailure { e ->
                 uiState = uiState.copy(
                     error = "방 입장 실패: ${e.message}",
@@ -163,21 +160,40 @@ class GroupViewModel {
             input = text
         )
 
-        uiState = uiState.copy(
-            messages = uiState.messages + "나: $text",
-            inputText = ""
-        )
+        uiState = uiState.copy(inputText = "")
     }
 
     private fun handleGroupMessage(msg: WsGroupMessage) {
-        val newList = uiState.messages + "서버: ${msg.message}"
+        val newStep = GroupStep.fromServer(msg.nextStep)
+        val isChat = msg.messageType.uppercase() == "CHAT"
+        val myId = uiState.memberIdInput.trim()
+
+        if (isChat) {
+            val sender = msg.senderId ?: "상대"
+
+            // ✅ 내가 보낸 채팅의 서버 echo는 무시 (로컬에서 이미 찍었음)
+            if (sender == myId) return
+
+            uiState = uiState.copy(
+                members = if (msg.members.isNotEmpty()) msg.members else uiState.members,
+                messages = uiState.messages + "$sender: ${msg.message}",
+                error = null
+            )
+            return
+        }
+
+        val shouldKeepInHistory =
+            newStep == GroupStep.RESULT || newStep == GroupStep.RESTART_CONFIRM
 
         uiState = uiState.copy(
             joinedRoomId = msg.roomId,
             members = if (msg.members.isNotEmpty()) msg.members else uiState.members,
-            messages = newList,
             currentPrompt = msg.message,
-            currentStep = GroupStep.fromServer(msg.nextStep),
+            currentStep = newStep,
+            messages = if (shouldKeepInHistory)
+                uiState.messages + "서버: ${msg.message}"
+            else
+                uiState.messages,
             error = null,
             isMenuFlowActive = false
         )
@@ -187,6 +203,12 @@ class GroupViewModel {
         uiState = uiState.copy(isMenuFlowActive = true)
     }
 
+    fun onRestartAnswer(answer: String) {
+        if (answer.uppercase() == "Y") {
+            uiState = uiState.copy(isMenuFlowActive = false)
+        }
+        sendPresetInput(answer)
+    }
 
     fun disconnect() {
         socketClient.disconnect()
@@ -197,15 +219,24 @@ class GroupViewModel {
     }
 
     fun onSplitModeSelected(mode: String) {
-        sendPresetInput(mode) // "N_DIVIDE" / "MENU_BASED" 같은 서버 값
+        if (mode == "MENU_BASED") {
+            sendPresetInput(mode)
+            uiState = uiState.copy(isMenuFlowActive = true)
+            return
+        }
+        sendPresetInput(mode)
     }
+
+    fun exitMenuFlow() {
+        uiState = uiState.copy(isMenuFlowActive = false)
+    }
+
 
     fun onExchangeModeSelected(mode: String) {
         sendPresetInput(mode) // "AUTO" / "MANUAL" / "NONE"
     }
 
     private fun sendPresetInput(value: String) {
-        val roomId = uiState.joinedRoomId ?: return
         val memberId = uiState.memberIdInput.trim()
         if (memberId.isEmpty()) return
 
@@ -214,10 +245,51 @@ class GroupViewModel {
             input = value
         )
 
+        uiState = uiState.copy(inputText = "")
+    }
+
+    fun onChatTextChange(input: String) {
+        uiState = uiState.copy(chatText = input)
+    }
+
+    fun sendChat() {
+        val text = uiState.chatText.trim()
+        val memberId = uiState.memberIdInput.trim()
+        if (text.isEmpty() || memberId.isEmpty()) return
+
+        val payload = "CHAT:$text"
+        socketClient.sendGroupInput(memberId, payload)
+
         uiState = uiState.copy(
-            messages = uiState.messages + "나: $value"
+            messages = uiState.messages + "$memberId: $text",
+            chatText = ""
         )
     }
 
+    fun sendMenuPayload(payload: String) {
+        val memberId = uiState.memberIdInput.trim()
+        val roomId = uiState.joinedRoomId
+        if (memberId.isEmpty() || roomId.isNullOrEmpty()) return
+
+        socketClient.sendGroupInput(memberId, payload)
+
+        // ✅ payload 문자열은 히스토리에 안 남기고, 깔끔한 시스템 라인만 남김
+        uiState = uiState.copy(
+            messages = uiState.messages + "서버: 메뉴별 결과를 전송했습니다. 다음 단계로 진행합니다.",
+            isMenuFlowActive = false
+        )
+    }
+
+    fun sendSystemInput(text: String) {
+        val roomId = uiState.joinedRoomId
+        val memberId = uiState.memberIdInput.trim()
+
+        if (text.isEmpty() || roomId.isNullOrEmpty() || memberId.isEmpty()) return
+
+        socketClient.sendGroupInput(
+            memberId = memberId,
+            input = text
+        )
+    }
 
 }

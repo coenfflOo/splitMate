@@ -26,3 +26,13 @@ suspend fun callGetRoom(roomId: String): GroupRoomResponseDto {
         contentType(ContentType.Application.Json)
     }.body()
 }
+
+suspend fun callSendGroupMessage(
+    roomId: String,
+    req: GroupMessageRequestDto
+): GroupRoomResponseDto {
+    return httpClient.post("$BASE_URL/api/group/rooms/$roomId/messages") {
+        contentType(ContentType.Application.Json)
+        setBody(req)
+    }.body()
+}

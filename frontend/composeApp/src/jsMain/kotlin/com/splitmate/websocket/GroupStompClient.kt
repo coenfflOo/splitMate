@@ -192,28 +192,29 @@ class GroupStompClient(
     }
 
     private fun handleGroupBody(body: String) {
-        // body: {"roomId":"...","members":["a","b"],"message":"...","nextStep":"..."}
         val dyn = JSON.parse<dynamic>(body)
 
         val roomId = dyn.roomId as? String ?: ""
         val message = dyn.message as? String ?: ""
         val nextStep = dyn.nextStep as? String
+        val senderId = dyn.senderId as? String
+        val messageType = dyn.messageType as? String ?: "SYSTEM"
 
         val membersDyn = dyn.members
         val members: List<String> =
             if (membersDyn != null) {
                 val arr = membersDyn.unsafeCast<Array<dynamic>>()
                 arr.mapNotNull { it as? String }
-            } else {
-                emptyList()
-            }
+            } else emptyList()
 
         onGroupMessage?.invoke(
             WsGroupMessage(
                 roomId = roomId,
                 members = members,
                 message = message,
-                nextStep = nextStep
+                nextStep = nextStep,
+                senderId = senderId,
+                messageType = messageType
             )
         )
     }

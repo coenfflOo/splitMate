@@ -150,8 +150,8 @@ frontend/
 
 ### 3-4. 결과 화면
 
-- [ ]  각자 부담 subtotal + 세금/팁 비례 분배 + 총합
-- [ ]  KRW 변환 옵션 제공
+- [x]  각자 부담 subtotal + 세금/팁 비례 분배 + 총합
+- [x]  KRW 변환 옵션 제공
 
 ---
 
@@ -202,7 +202,7 @@ frontend/
 
 ### 6-2. WebSocket
 
-- [ ]  connect to `/ws`
-- [ ]  subscribe `/topic/group/{roomId}`
-- [ ]  subscribe `/topic/group/{roomId}.errors`
-- [ ]  send `/app/group/{roomId}/messages`
+- [x]  connect to `/ws`
+- [x]  subscribe `/topic/group/{roomId}`
+- [x]  subscribe `/topic/group/{roomId}.errors`
+- [x]  send `/app/group/{roomId}/messages`

@@ -20,7 +20,62 @@ fun GroupScreen(
     viewModel: GroupViewModel = remember { GroupViewModel() }
 ) {
     val state = viewModel.uiState
+    val menuVm = remember { MenuSplitViewModel() }
+    val menuState = menuVm.uiState
 
+    Div({ classes(AppStyles.backButtonRow) }) {
+        Button(attrs = {
+            onClick {
+                viewModel.disconnect()
+                goHome()
+            }
+        }) { Text("← 홈으로") }
+    }
+
+    H2 { Text("GROUP 모드") }
+    P { Text("여러 명이 한 방에 들어와서 계산 과정을 함께 진행하는 모드입니다.") }
+
+    // ✅ 입장 전 UI는 isJoined=false 일 때만 보여준다
+    if (!state.isJoined) {
+        Div({ classes(AppStyles.formColumn) }) {
+            Label { Text("Room ID") }
+            Input(type = InputType.Text, attrs = {
+                classes(AppStyles.textField)
+                value(state.roomIdInput)
+                attr("placeholder", "예: room-1")
+                onInput { ev -> viewModel.onRoomIdChange(ev.value) }
+            })
+
+            Label { Text("Member ID") }
+            Input(type = InputType.Text, attrs = {
+                classes(AppStyles.textField)
+                value(state.memberIdInput)
+                attr("placeholder", "예: member-1")
+                onInput { ev -> viewModel.onMemberIdChange(ev.value) }
+            })
+
+            Div({ classes(AppStyles.buttonRow) }) {
+                Button(attrs = {
+                    if (state.isLoading) attr("disabled", "true")
+                    onClick { viewModel.createAndJoinRoom() }
+                }) { Text(if (state.isLoading) "처리중..." else "방 생성 후 입장") }
+
+                Button(attrs = {
+                    if (state.isLoading) attr("disabled", "true")
+                    onClick { viewModel.joinExistingRoom() }
+                }) { Text(if (state.isLoading) "처리중..." else "기존 방 입장") }
+            }
+
+            if (state.error != null) {
+                P({ classes(AppStyles.errorText) }) { Text(state.error!!) }
+            }
+            if (state.info != null) {
+                P { Text(state.info!!) }
+            }
+        }
+    }
+
+    // ✅ 입장 후 UI
     if (state.isJoined) {
         Hr()
 
@@ -29,17 +84,107 @@ fun GroupScreen(
             style { marginTop(12.px) }
         }) {
             H3 { Text("현재 방 정보") }
-
             P { Text("Room ID: ${state.joinedRoomId ?: "-"}") }
 
             if (state.members.isNotEmpty()) {
                 P { Text("참여자: ${state.members.joinToString(", ")}") }
             }
 
-            if (state.currentPrompt.isNotBlank()) {
-                P { Text("서버 안내 메시지: ${state.currentPrompt}") }
-            }
+//            if (state.currentPrompt.isNotBlank()) {
+//                P { Text("서버 안내 메시지: ${state.currentPrompt}") }
+//            }
         }
+
+//    Div({ classes(AppStyles.backButtonRow) }) {
+//        Button(attrs = {
+//            onClick {
+//                viewModel.disconnect()
+//                goHome()
+//            }
+//        }) { Text("← 홈으로") }
+//    }
+//
+//    H2 { Text("GROUP 모드") }
+//    P { Text("여러 명이 한 방에 들어와서 계산 과정을 함께 진행하는 모드입니다.") }
+//
+//    Div({ classes(AppStyles.formColumn) }) {
+//        Label { Text("Room ID") }
+//        Input(type = InputType.Text, attrs = {
+//            classes(AppStyles.textField)
+//            value(state.roomIdInput)
+//            attr("placeholder", "예: room-1")
+//            onInput { ev -> viewModel.onRoomIdChange(ev.value) }
+//        })
+//
+//        Label { Text("Member ID") }
+//        Input(type = InputType.Text, attrs = {
+//            classes(AppStyles.textField)
+//            value(state.memberIdInput)
+//            attr("placeholder", "예: member-1")
+//            onInput { ev -> viewModel.onMemberIdChange(ev.value) }
+//        })
+//
+//        Div({ classes(AppStyles.buttonRow) }) {
+//            Button(attrs = {
+//                if (state.isLoading) attr("disabled", "true")
+//                onClick { viewModel.createAndJoinRoom() }
+//            }) { Text(if (state.isLoading) "처리중..." else "방 생성 후 입장") }
+//
+//            Button(attrs = {
+//                if (state.isLoading) attr("disabled", "true")
+//                onClick { viewModel.joinExistingRoom() }
+//            }) { Text(if (state.isLoading) "처리중..." else "기존 방 입장") }
+//        }
+//
+//        if (state.error != null) {
+//            P({ classes(AppStyles.errorText) }) { Text(state.error!!) }
+//        }
+//        if (state.info != null) {
+//            P { Text(state.info!!) }
+//        }
+//    }
+//
+//    if (state.isJoined) {
+//        Hr()
+//
+//        Div({ classes(AppStyles.buttonRow) }) {
+//            Button(attrs = {
+//                if (state.isLoading) {
+//                    attr("disabled", "true")
+//                }
+//                onClick { viewModel.createAndJoinRoom() }
+//            }) {
+//                Text(if (state.isLoading) "처리중..." else "방 생성 후 입장")
+//            }
+//
+//            Button(attrs = {
+//                if (state.isLoading) {
+//                    attr("disabled", "true")
+//                }
+//                onClick { viewModel.joinExistingRoom() }
+//            }) {
+//                Text(if (state.isLoading) "처리중..." else "기존 방 입장")
+//            }
+//        }
+//
+//
+//
+//        Div({
+//            classes(AppStyles.formColumn)
+//            style { marginTop(12.px) }
+//        }) {
+//            H3 { Text("현재 방 정보") }
+//
+//            P { Text("Room ID: ${state.joinedRoomId ?: "-"}") }
+//
+//            if (state.members.isNotEmpty()) {
+//                P { Text("참여자: ${state.members.joinToString(", ")}") }
+//            }
+//
+//            if (state.currentPrompt.isNotBlank()) {
+//                P { Text("서버 안내 메시지: ${state.currentPrompt}") }
+//            }
+//        }
 
         Div({
             classes(AppStyles.formColumn)
@@ -57,21 +202,45 @@ fun GroupScreen(
 
             when (state.currentStep) {
                 GroupStep.SPLIT_MODE -> {
+                    H3 { Text("분배 방식을 선택하세요") }
+                    P { Text(state.currentPrompt) }
+
                     Div({ classes(AppStyles.buttonRow) }) {
 
                         Button(attrs = {
-                            onClick {
-                                viewModel.sendMessage("N_DIVIDE")
-                            }
+                            onClick { viewModel.onSplitModeSelected("N_DIVIDE") }
                         }) { Text("N분의 1") }
 
                         Button(attrs = {
-                            onClick {
-                                // 로컬 메뉴 플로우 시작
-                                viewModel.startMenuFlow()
-                                viewModel.sendMessage("MENU_BASED")
+                            onClick { viewModel.onSplitModeSelected("MENU_BASED") }
+                        }) { Text("메뉴별 분배") }
+                    }
+                }
+
+                GroupStep.MENU_ITEMS,
+                GroupStep.PARTICIPANTS,
+                GroupStep.MENU_ASSIGNMENTS -> {
+                    H3 { Text("🍽 메뉴별 분배 입력") }
+                    P { Text("아래 UI로 메뉴/참가자/배정을 선택하세요.") }
+
+                    MenuSplitScreen(
+                        goHome = {},
+                        viewModel = menuVm
+                    )
+
+                    if (menuState.step == MenuStep.RESULT && menuState.result != null) {
+                        val payload = buildMenuPayload(menuState)
+
+                        Div({ classes(AppStyles.buttonRow) }) {
+                            Button(attrs = {
+                                onClick {
+                                    viewModel.sendSystemInput(payload)
+                                    menuVm.backToMenuStep()
+                                }
+                            }) {
+                                Text("이 결과를 서버에 전송")
                             }
-                        }) { Text("메뉴별 계산") }
+                        }
                     }
                 }
 
@@ -94,88 +263,127 @@ fun GroupScreen(
                 }
 
                 GroupStep.RESULT -> {
-                    Hr()
-                    Div({ classes(AppStyles.formColumn) }) {
-                        H3 { Text("✅ 최종 결과") }
+                    H3 { Text("✅ 최종 결과") }
+                    P { Text(state.currentPrompt) }
 
-                        // 서버가 내려준 최종 message 그대로 강조 표시
-                        Div({
-                            style {
-                                marginTop(8.px)
-                                padding(12.px)
-                                property("border", "1px solid #ddd")
-                                property("border-radius", "8px")
-                            }
-                        }) {
-                            Text(state.currentPrompt)
-                        }
+//                    // ✅ MENU_BASED 결과면 메뉴 섹션 같이 보여줌
+//                    if (state.isMenuFlowActive) {
+//                        Hr()
+//                        H3 { Text("🍽 메뉴별 분배 결과") }
+//
+//                        val menuVm = remember { MenuSplitViewModel() }
+//
+//                        MenuSplitScreen(
+//                            goHome = {},
+//                            viewModel = menuVm
+//                        )
+//
+//                        val menuState = menuVm.uiState
+//                        if (menuState.step == MenuStep.RESULT && menuState.result != null) {
+//                            val payload = buildMenuPayload(menuState)
+//                            Button(attrs = {
+//                                onClick { viewModel.sendMessage(payload) }
+//                            }) {
+//                                Text("이 결과를 서버에 전송")
+//                            }
+//                        }
+//                    }
 
-                        P {
-                            Text("아래는 전체 대화 로그입니다.")
-                        }
-                    }
-                }
-
-                GroupStep.RESTART_CONFIRM -> {
-                    Hr()
                     Div({ classes(AppStyles.buttonRow) }) {
-                        Button(attrs = { onClick { viewModel.sendMessage("YES") } }) {
+                        Button(attrs = { onClick { viewModel.onRestartAnswer("Y") } }) {
                             Text("다시 계산하기")
                         }
-                        Button(attrs = {
-                            onClick {
-                                viewModel.sendMessage("NO")
-                                viewModel.disconnect()
-                                goHome()
-                            }
-                        }) {
+                        Button(attrs = { onClick { viewModel.onRestartAnswer("N") } }) {
                             Text("종료")
                         }
                     }
                 }
 
+                GroupStep.RESTART_CONFIRM -> {
+                    H3 { Text("다시 시작할까요?") }
+                    P { Text(state.currentPrompt) }
+
+                    Div({ classes(AppStyles.buttonRow) }) {
+                        Button(attrs = { onClick { viewModel.onRestartAnswer("Y") } }) {
+                            Text("예, 다시 시작")
+                        }
+                        Button(attrs = { onClick { viewModel.onRestartAnswer("N") } }) {
+                            Text("아니오")
+                        }
+                    }
+                }
+
                 else -> {
-                    Label { Text("입력") }
+                    // TOTAL_AMOUNT / TAX / TIP_VALUE / PEOPLE_COUNT / EXCHANGE_VALUE 등
+                    Label { Text("계산 입력") }
                     Input(type = InputType.Text, attrs = {
                         classes(AppStyles.textField)
                         value(state.inputText)
-                        attr("placeholder", "예: 27.40")
+                        attr("placeholder", placeholderFor(state.currentStep))
                         onInput { ev -> viewModel.onInputTextChange(ev.value) }
                     })
 
                     Div({ classes(AppStyles.buttonRow) }) {
                         Button(attrs = { onClick { viewModel.sendMessage() } }) {
-                            Text("보내기")
+                            Text("계산 보내기")
                         }
                     }
                 }
             }
-            if (state.isMenuFlowActive) {
-                Hr()
-                H3 { Text("🍽 메뉴별 입력 (로컬 플로우)") }
 
-                val menuVm = remember { MenuSplitViewModel() }
-                MenuSplitScreen(
-                    goHome = {},
-                )
+            Hr()
 
-                // 로컬 플로우가 RESULT에 도달하면 서버로 payload 전송
-                val menuState = menuVm.uiState
-                if (menuState.step == MenuStep.RESULT && menuState.result != null) {
-                    val payload = buildMenuPayload(menuState)
-                    Button(attrs = {
-                        onClick {
-                            viewModel.sendMessage(payload)
-                        }
-                    }) {
-                        Text("이 결과를 서버에 전송")
-                    }
+            Label { Text("채팅") }
+            Input(type = InputType.Text, attrs = {
+                classes(AppStyles.textField)
+                value(state.chatText)
+                attr("placeholder", "친구에게 메시지 보내기")
+                onInput { ev -> viewModel.onChatTextChange(ev.value) }
+            })
+
+            Div({ classes(AppStyles.buttonRow) }) {
+                Button(attrs = { onClick { viewModel.sendChat() } }) {
+                    Text("채팅 보내기")
                 }
             }
+//            if (state.isMenuFlowActive) {
+//                Hr()
+//                H3 { Text("🍽 메뉴별 입력 (로컬 플로우)") }
+//
+//                val menuVm = remember { MenuSplitViewModel() }
+//                MenuSplitScreen(
+//                    goHome = {},
+//                )
+//
+//                // 로컬 플로우가 RESULT에 도달하면 서버로 payload 전송
+//                val menuState = menuVm.uiState
+//                if (menuState.step == MenuStep.RESULT && menuState.result != null) {
+//                    val payload = buildMenuPayload(menuState)
+//                    Button(attrs = {
+//                        onClick {
+//                            viewModel.sendMessage(payload)
+//                        }
+//                    }) {
+//                        Text("이 결과를 서버에 전송")
+//                    }
+//                }
+//            }
         }
     }
-
 }
+private fun placeholderFor(step: GroupStep): String =
+    when (step) {
+        GroupStep.TOTAL_AMOUNT -> "예: 27.40"
+        GroupStep.TAX -> "예: 2.60 또는 없음"
+        GroupStep.TIP_VALUE -> "예: 15 또는 10.00"
+        GroupStep.PEOPLE_COUNT -> "예: 3"
+        GroupStep.EXCHANGE_VALUE -> "예: 980.5"
+        GroupStep.MENU_ITEMS -> "예: 파스타 18.9; 피자 22; 콜라 3"
+        GroupStep.PARTICIPANTS -> "예: 민지, 철수, 영희"
+        GroupStep.MENU_ASSIGNMENTS -> "예: m1:p1,p2; m2:p2"
+        else -> "입력해주세요"
+    }
+
 
 private fun buildMenuPayload(state: MenuSplitUiState): String {
     // 서버가 기대하는 포맷에 맞춰 바꿀 수 있도록

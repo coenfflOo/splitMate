@@ -9,12 +9,16 @@ data class GroupUiState(
     val members: List<String> = emptyList(),
     val messages: List<String> = emptyList(),
 
+    val chatText: String = "",
+
     val currentPrompt: String = "",
     val currentStep: GroupStep = GroupStep.UNKNOWN,
 
     val inputText: String = "",
 
     val isMenuFlowActive: Boolean = false,
+
+    val isLoading: Boolean = false,
 
     val error: String? = null,
     val info: String? = null

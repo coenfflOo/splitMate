@@ -32,9 +32,9 @@ import org.jetbrains.compose.web.dom.Tr
 
 @Composable
 fun MenuSplitScreen(
-    goHome: () -> Unit
+    goHome: () -> Unit,
+    viewModel: MenuSplitViewModel = remember { MenuSplitViewModel()}
 ) {
-    val viewModel = remember { MenuSplitViewModel() }
     val state = viewModel.uiState
 
     Div({

@@ -24,7 +24,9 @@ data class GroupRoomResponseDto(
     val roomId: String,
     val members: List<String> = emptyList(),
     val message: String,
-    val nextStep: String
+    val nextStep: String,
+    val senderId: String? = null,
+    val messageType: String = "SYSTEM"
 )
 
 @Serializable
