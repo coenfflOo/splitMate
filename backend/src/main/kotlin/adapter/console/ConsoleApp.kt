@@ -1,8 +1,8 @@
 package adapter.console
 
 import adapter.fx.HttpExchangeRateProvider
-import application.conversation.ConsoleConversationFlow
-import application.conversation.ConversationContext
+import application.conversation.flow.ConsoleConversationFlow
+import application.conversation.model.ConversationContext
 import domain.fx.ExchangeService
 
 class ConsoleApp(

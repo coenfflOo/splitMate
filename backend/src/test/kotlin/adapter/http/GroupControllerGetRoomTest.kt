@@ -7,9 +7,9 @@ import application.group.RoomId
 import application.group.RoomState
 import com.fasterxml.jackson.databind.ObjectMapper
 import config.AppConfig
-import application.conversation.ConversationContext
-import application.conversation.ConversationOutput
-import application.conversation.ConversationStep
+import application.conversation.model.ConversationContext
+import application.conversation.model.ConversationOutput
+import application.conversation.model.ConversationStep
 import org.junit.jupiter.api.Test
 import org.mockito.BDDMockito.given
 import org.springframework.beans.factory.annotation.Autowired

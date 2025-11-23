@@ -1,10 +1,10 @@
 // src/test/kotlin/application/group/GroupConversationServiceTest.kt
 package application.group
 
-import application.conversation.ConversationContext
-import application.conversation.ConversationFlow
-import application.conversation.ConversationOutput
-import application.conversation.ConversationStep
+import application.conversation.model.ConversationContext
+import application.conversation.flow.ConversationFlow
+import application.conversation.model.ConversationOutput
+import application.conversation.model.ConversationStep
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull

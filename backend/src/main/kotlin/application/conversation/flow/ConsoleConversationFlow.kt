@@ -1,5 +1,8 @@
-package application.conversation
+package application.conversation.flow
 
+import application.conversation.model.ConversationContext
+import application.conversation.model.ConversationOutput
+import application.conversation.model.ConversationStep
 import domain.fx.ExchangeService
 
 class ConsoleConversationFlow(

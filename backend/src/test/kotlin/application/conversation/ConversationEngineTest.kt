@@ -1,5 +1,7 @@
 package application.conversation
 
+import application.conversation.flow.ConsoleConversationFlow
+import application.conversation.model.ConversationStep
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue

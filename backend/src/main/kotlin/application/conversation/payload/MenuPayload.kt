@@ -1,5 +1,7 @@
-package application.conversation
+package application.conversation.payload
 
+import application.conversation.model.MenuItemInput
+import application.conversation.model.MenuParticipantInput
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
 
@@ -13,7 +15,7 @@ private data class MenuPayloadItem(val id: String, val name: String, val price: 
 private data class MenuPayloadParticipant(val id: String, val name: String)
 private data class MenuPayloadAssignment(val menuId: String, val participantIds: List<String>)
 
-public fun parseMenuPayload(input: String): Triple<List<MenuItemInput>, List<MenuParticipantInput>, Map<String, List<String>>>? {
+fun parseMenuPayload(input: String): Triple<List<MenuItemInput>, List<MenuParticipantInput>, Map<String, List<String>>>? {
     return runCatching {
         val json = input.removePrefix("MENU_PAYLOAD:").trim()
 

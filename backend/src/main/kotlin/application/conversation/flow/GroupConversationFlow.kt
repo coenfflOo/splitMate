@@ -1,5 +1,11 @@
-package application.conversation
+package application.conversation.flow
 
+import application.conversation.model.ConversationContext
+import application.conversation.model.ConversationOutput
+import application.conversation.model.ConversationStep
+import application.conversation.model.MenuItemInput
+import application.conversation.model.MenuParticipantInput
+import application.conversation.payload.parseMenuPayload
 import domain.fx.ExchangeService
 import domain.menu.MenuAssignment
 import domain.menu.MenuItem

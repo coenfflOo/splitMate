@@ -1,4 +1,4 @@
-package application.conversation
+package application.conversation.model
 
 enum class ConversationStep {
     ASK_TOTAL_AMOUNT,

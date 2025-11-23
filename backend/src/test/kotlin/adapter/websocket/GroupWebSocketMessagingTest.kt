@@ -2,14 +2,14 @@ package adapter.websocket
 
 import adapter.http.dto.GroupMessageRequest
 import adapter.http.dto.GroupRoomResponse
-import application.conversation.ConversationOutput
+import application.conversation.model.ConversationOutput
 import application.group.GroupConversationService
 import application.group.MemberId
 import application.group.RoomId
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import config.AppConfig
-import application.conversation.ConversationContext
-import application.conversation.ConversationStep
+import application.conversation.model.ConversationContext
+import application.conversation.model.ConversationStep
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach

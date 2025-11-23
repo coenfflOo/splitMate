@@ -1,4 +1,4 @@
-package application.conversation
+package application.conversation.model
 
 data class ConversationOutput(
     val nextStep: ConversationStep,

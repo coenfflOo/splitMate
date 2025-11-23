@@ -1,5 +1,8 @@
-package application.conversation
+package application.conversation.flow
 
+import application.conversation.model.ConversationContext
+import application.conversation.model.ConversationOutput
+import application.conversation.model.ConversationStep
 import domain.fx.ExchangeService
 import domain.money.Currency
 import domain.money.Money
@@ -13,8 +16,7 @@ import java.math.BigDecimal
 import java.math.RoundingMode
 
 abstract class BaseConversationFlow(
-    private val exchangeService: ExchangeService? = null,
-    private val askRestartAfterResult: Boolean = false
+    private val exchangeService: ExchangeService? = null
 ) : ConversationFlow {
 
     override fun handle(
@@ -388,27 +390,6 @@ abstract class BaseConversationFlow(
         )
     }
 
-    protected fun parsePositiveMoney(input: String): Money? {
-        val v = parsePositiveDecimal(input) ?: return null
-        return Money.of(v, Currency.CAD)
-    }
-
-    protected fun parseTaxMoney(input: String): Money? {
-        val norm = input.trim().lowercase()
-        if (norm in listOf("없음", "none", "no", "0")) {
-            return Money.zero(Currency.CAD)
-        }
-        val v = parsePositiveDecimal(norm) ?: return null
-        return Money.of(v, Currency.CAD)
-    }
-
-    protected fun parsePositiveDecimal(input: String): BigDecimal? {
-        val s = input.replace(",", "").trim()
-        val v = s.toBigDecimalOrNull() ?: return null
-        if (v < BigDecimal.ZERO) return null
-        return v
-    }
-
     protected fun parseTipMode(input: String): TipMode? {
         return when (input.trim().lowercase()) {
             "1", "percent", "퍼센트" -> TipMode.PERCENT
@@ -433,7 +414,10 @@ abstract class BaseConversationFlow(
 
         val tip = when (context.tipMode) {
             TipMode.PERCENT -> Tip(mode = TipMode.PERCENT, percent = context.tipPercent ?: 0)
-            TipMode.ABSOLUTE -> Tip(mode = TipMode.ABSOLUTE, absolute = context.tipAbsolute ?: Money.zero(Currency.CAD))
+            TipMode.ABSOLUTE -> Tip(
+                mode = TipMode.ABSOLUTE,
+                absolute = context.tipAbsolute ?: Money.zero(Currency.CAD)
+            )
             TipMode.NONE, null -> Tip(mode = TipMode.NONE)
         }
 

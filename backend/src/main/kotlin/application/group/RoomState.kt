@@ -1,6 +1,6 @@
 package application.group
 
-import application.conversation.ConversationOutput
+import application.conversation.model.ConversationOutput
 
 data class RoomState(
     val id: RoomId,

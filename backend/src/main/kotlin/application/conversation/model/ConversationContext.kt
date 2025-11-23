@@ -1,4 +1,4 @@
-package application.conversation
+package application.conversation.model
 
 import domain.money.Money
 import domain.receipt.TipMode

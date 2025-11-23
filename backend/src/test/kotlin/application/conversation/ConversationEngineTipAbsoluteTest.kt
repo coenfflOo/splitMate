@@ -1,5 +1,6 @@
 package application.conversation
 
+import application.conversation.flow.ConsoleConversationFlow
 import domain.fx.ExchangeRate
 import domain.fx.ExchangeRateProvider
 import domain.fx.ExchangeService

@@ -1,6 +1,9 @@
 // src/test/kotlin/application/conversation/ExchangeFallbackAndConvertTest.kt
 package application.conversation
 
+import application.conversation.flow.ConsoleConversationFlow
+import application.conversation.model.ConversationContext
+import application.conversation.model.ConversationStep
 import domain.fx.ExchangeRate
 import domain.fx.ExchangeRateProvider
 import domain.fx.ExchangeService

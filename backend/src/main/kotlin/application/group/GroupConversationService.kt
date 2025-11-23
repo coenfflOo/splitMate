@@ -1,8 +1,8 @@
 package application.group
 
-import application.conversation.ConversationContext
-import application.conversation.ConversationFlow
-import application.conversation.ConversationOutput
+import application.conversation.model.ConversationContext
+import application.conversation.flow.ConversationFlow
+import application.conversation.model.ConversationOutput
 import org.springframework.stereotype.Service
 import java.util.concurrent.ConcurrentHashMap
 

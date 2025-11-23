@@ -1,6 +1,9 @@
 // src/test/kotlin/application/conversation/TipModeStoreTest.kt
 package application.conversation
 
+import application.conversation.flow.ConsoleConversationFlow
+import application.conversation.model.ConversationContext
+import application.conversation.model.ConversationStep
 import domain.money.Currency
 import domain.money.Money
 import domain.receipt.TipMode
