@@ -2,18 +2,19 @@ package adapter.websocket
 
 import adapter.http.dto.GroupMessageRequest
 import adapter.http.dto.GroupRoomResponse
+import application.conversation.ConversationOutput
 import application.group.GroupConversationService
 import application.group.MemberId
 import application.group.RoomId
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import config.AppConfig
+import application.conversation.ConversationContext
+import application.conversation.ConversationStep
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.mockito.BDDMockito.given
-import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.test.web.server.LocalServerPort
 import org.springframework.messaging.converter.MappingJackson2MessageConverter
@@ -59,10 +60,10 @@ class GroupWebSocketMessagingTest {
         val memberId = MemberId("member-1")
 
         // 1) WebSocket이 브로드캐스트할 때 사용할 가짜 RoomState 준비
-        val fakeOutput = domain.conversation.ConversationOutput(
+        val fakeOutput = ConversationOutput(
             message = "ok!",
-            nextStep = domain.conversation.ConversationStep.ASK_TOTAL_AMOUNT,
-            context = application.conversation.ConversationContext() // 실제 타입에 맞춰서 or mock()
+            nextStep = ConversationStep.ASK_TOTAL_AMOUNT,
+            context = ConversationContext() // 실제 타입에 맞춰서 or mock()
         )
         val fakeState = application.group.RoomState(
             id = roomId,

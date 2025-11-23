@@ -1,7 +1,6 @@
 // src/test/kotlin/application/conversation/ExchangeFallbackAndConvertTest.kt
 package application.conversation
 
-import domain.conversation.ConversationStep
 import domain.fx.ExchangeRate
 import domain.fx.ExchangeRateProvider
 import domain.fx.ExchangeService
@@ -16,7 +15,7 @@ class ExchangeFallbackAndConvertTest {
     @Test
     fun `ExchangeService가 없을 때 자동 환율 선택 시 수동 입력 단계로 전환된다`() {
         // given - exchangeService = null 인 엔진
-        val engine = ConversationEngine(exchangeService = null)
+        val engine = ConsoleConversationFlow(exchangeService = null)
         val ctx = ConversationContext()
 
         // when
@@ -43,7 +42,7 @@ class ExchangeFallbackAndConvertTest {
             }
         }
         val exchangeService = ExchangeService(provider)
-        val engine = ConversationEngine(exchangeService)
+        val engine = ConsoleConversationFlow(exchangeService)
 
         val ctx = ConversationContext()
 

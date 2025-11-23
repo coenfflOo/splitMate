@@ -3,8 +3,8 @@ package application.group
 
 import application.conversation.ConversationContext
 import application.conversation.ConversationFlow
-import domain.conversation.ConversationOutput
-import domain.conversation.ConversationStep
+import application.conversation.ConversationOutput
+import application.conversation.ConversationStep
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull

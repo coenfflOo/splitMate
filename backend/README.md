@@ -68,10 +68,6 @@ com.splitmate
  │   │    ├─ Participant.kt       
  │   │    └─ MenuAssignment.kt
  │   │
- │   ├─ money             
- │   │    ├─ Currency.kt
- │   │    └─ Money.kt
- │   │
  │   ├─ split             
  │   │    ├─ SplitMode.kt         
  │   │    ├─ SplitResult.kt       

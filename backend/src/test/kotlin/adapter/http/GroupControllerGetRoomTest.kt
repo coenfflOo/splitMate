@@ -1,15 +1,15 @@
 // src/test/kotlin/adapter/http/GroupControllerGetRoomTest.kt
 package adapter.http
 
-import adapter.http.dto.GroupRoomResponse
 import application.group.GroupConversationService
 import application.group.MemberId
 import application.group.RoomId
 import application.group.RoomState
 import com.fasterxml.jackson.databind.ObjectMapper
 import config.AppConfig
-import domain.conversation.ConversationOutput
-import domain.conversation.ConversationStep
+import application.conversation.ConversationContext
+import application.conversation.ConversationOutput
+import application.conversation.ConversationStep
 import org.junit.jupiter.api.Test
 import org.mockito.BDDMockito.given
 import org.springframework.beans.factory.annotation.Autowired
@@ -44,7 +44,7 @@ class GroupControllerGetRoomTest(
         val output = ConversationOutput(
             message = "총 결제 금액을 입력해주세요.",
             nextStep = ConversationStep.ASK_TOTAL_AMOUNT,
-            context = application.conversation.ConversationContext()
+            context = ConversationContext()
         )
 
         val state = RoomState(

@@ -1,7 +1,6 @@
 // src/test/kotlin/application/conversation/TipModeStoreTest.kt
 package application.conversation
 
-import domain.conversation.ConversationStep
 import domain.money.Currency
 import domain.money.Money
 import domain.receipt.TipMode
@@ -13,7 +12,7 @@ class TipModeStoreTest {
 
     @Test
     fun `% 모드 선택 후 퍼센트 값이 context에 저장된다`() {
-        val engine = ConversationEngine()
+        val engine = ConsoleConversationFlow()
         var out = engine.start()
         var ctx = out.context as ConversationContext
 
@@ -42,7 +41,7 @@ class TipModeStoreTest {
 
     @Test
     fun `ABSOLUTE 모드 선택 후 금액이 context에 저장된다`() {
-        val engine = ConversationEngine()
+        val engine = ConsoleConversationFlow()
         var out = engine.start()
         var ctx = out.context as ConversationContext
 
@@ -73,7 +72,7 @@ class TipModeStoreTest {
 
     @Test
     fun `팁 없음 선택 시 NONE 모드로 저장된다`() {
-        val engine = ConversationEngine()
+        val engine = ConsoleConversationFlow()
         var out = engine.start()
         var ctx = out.context as ConversationContext
 

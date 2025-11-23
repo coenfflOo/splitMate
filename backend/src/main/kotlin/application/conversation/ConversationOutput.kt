@@ -1,6 +1,4 @@
-package domain.conversation
-
-import application.conversation.ConversationContext
+package application.conversation
 
 data class ConversationOutput(
     val nextStep: ConversationStep,

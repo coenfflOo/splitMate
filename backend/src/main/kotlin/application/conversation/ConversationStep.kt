@@ -1,4 +1,4 @@
-package domain.conversation
+package application.conversation
 
 enum class ConversationStep {
     ASK_TOTAL_AMOUNT,

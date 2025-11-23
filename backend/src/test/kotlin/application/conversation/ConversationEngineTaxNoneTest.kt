@@ -18,7 +18,7 @@ class ConversationEngineTaxNoneTest {
 
     @Test
     fun `세금을 없음으로 입력하면 0으로 처리된다`() {
-        val engine = ConversationEngine(ExchangeService(FakeProvider1000TaxNone()))
+        val engine = ConsoleConversationFlow(ExchangeService(FakeProvider1000TaxNone()))
         var out = engine.start()
 
         // 총액 -> 세금(없음) -> 팁 없음 -> 분배 1/N -> 인원 1 -> 환율 없이 CAD만 보기

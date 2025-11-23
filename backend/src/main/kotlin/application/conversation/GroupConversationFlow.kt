@@ -1,7 +1,5 @@
 package application.conversation
 
-import domain.conversation.ConversationOutput
-import domain.conversation.ConversationStep
 import domain.fx.ExchangeService
 import domain.menu.MenuAssignment
 import domain.menu.MenuItem
@@ -19,7 +17,7 @@ import java.math.BigDecimal
 import java.math.RoundingMode
 
 @Component
-class SimpleConversationFlow(
+class GroupConversationFlow(
     private val exchangeService: ExchangeService? = null
 ) : BaseConversationFlow(exchangeService) {
 

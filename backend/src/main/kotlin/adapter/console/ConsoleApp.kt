@@ -1,12 +1,12 @@
 package adapter.console
 
 import adapter.fx.HttpExchangeRateProvider
-import application.conversation.ConversationEngine
+import application.conversation.ConsoleConversationFlow
 import application.conversation.ConversationContext
 import domain.fx.ExchangeService
 
 class ConsoleApp(
-    private val engine: ConversationEngine,
+    private val engine: ConsoleConversationFlow,
     private val io: ConsoleIO
 ) {
 
@@ -57,11 +57,11 @@ fun main() {
     val engine =
         if (authKey.isNullOrBlank()) {
             io.println("[안내] KOREA_EXIM_AUTH_KEY 환경변수가 없어 자동 환율 조회는 비활성화됩니다. (수동 입력 사용)")
-            ConversationEngine(exchangeService = null)
+            ConsoleConversationFlow(exchangeService = null)
         } else {
             val provider = HttpExchangeRateProvider(authKey)
             val exchangeService = ExchangeService(provider)
-            ConversationEngine(exchangeService)
+            ConsoleConversationFlow(exchangeService)
         }
 
     val app = ConsoleApp(engine, io)

@@ -1,6 +1,5 @@
 package application.conversation
 
-import domain.conversation.ConversationStep
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -9,7 +8,7 @@ class ConversationEngineValidationTest {
 
     @Test
     fun `총 금액이 0이나 음수면 다시 입력을 요구한다`() {
-        val engine = ConversationEngine()
+        val engine = ConsoleConversationFlow()
         var out = engine.start()
 
         out = engine.handle(out.nextStep, "0", out.context)
@@ -22,7 +21,7 @@ class ConversationEngineValidationTest {
 
     @Test
     fun `인원 수가 0이나 음수거나 정수가 아니면 다시 입력을 요구하고 여러 번 틀리면 재시작 여부를 묻는다`() {
-        val engine = ConversationEngine()
+        val engine = ConsoleConversationFlow()
         var out = engine.start()
 
         out = engine.handle(out.nextStep, "10.00", out.context)

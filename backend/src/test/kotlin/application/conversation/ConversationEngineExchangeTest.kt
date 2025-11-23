@@ -1,6 +1,5 @@
 package application.conversation
 
-import domain.conversation.ConversationStep
 import domain.fx.ExchangeRate
 import domain.fx.ExchangeRateProvider
 import domain.fx.ExchangeService
@@ -24,7 +23,7 @@ class ConversationEngineExchangeTest {
 
     @Test
     fun `수동 환율 입력 경로 - KRW 포함 요약 출력`() {
-        val engine = ConversationEngine(ExchangeService(FakeProviderFail())) // 수동 경로만 사용
+        val engine = ConsoleConversationFlow(ExchangeService(FakeProviderFail())) // 수동 경로만 사용
         var out = engine.start()
         val ctx0 = out.context
         // 총액 -> 세금 -> 팁모드(퍼센트=1) -> 팁값 -> 분배(N=1) -> 인원수 -> 환율모드(수동=2) -> 환율값 -> 요약
@@ -46,7 +45,7 @@ class ConversationEngineExchangeTest {
 
     @Test
     fun `자동 환율 조회 경로 - Provider OK`() {
-        val engine = ConversationEngine(ExchangeService(FakeProviderOk()))
+        val engine = ConsoleConversationFlow(ExchangeService(FakeProviderOk()))
         var out = engine.start()
         out = engine.handle(out.nextStep, "10.00", out.context)    // 금액
         out = engine.handle(out.nextStep, "0", out.context)        // 세금
@@ -65,7 +64,7 @@ class ConversationEngineExchangeTest {
 
     @Test
     fun `자동 환율 조회 실패시 수동 입력으로 폴백 유도`() {
-        val engine = ConversationEngine(ExchangeService(FakeProviderFail()))
+        val engine = ConsoleConversationFlow(ExchangeService(FakeProviderFail()))
         var out = engine.start()
         out = engine.handle(out.nextStep, "10.00", out.context) // 총액
         out = engine.handle(out.nextStep, "0", out.context)     // 세금

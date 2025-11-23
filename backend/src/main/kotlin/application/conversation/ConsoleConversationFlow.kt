@@ -1,10 +1,8 @@
 package application.conversation
 
-import domain.conversation.ConversationOutput
-import domain.conversation.ConversationStep
 import domain.fx.ExchangeService
 
-class ConversationEngine(
+class ConsoleConversationFlow(
     exchangeService: ExchangeService? = null
 ) : BaseConversationFlow(exchangeService) {
 

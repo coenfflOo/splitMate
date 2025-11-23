@@ -1,6 +1,5 @@
 package application.conversation
 
-import domain.conversation.ConversationStep
 import domain.money.Money
 import domain.receipt.TipMode
 import domain.split.SplitMode

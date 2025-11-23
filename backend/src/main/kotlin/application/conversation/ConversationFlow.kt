@@ -1,8 +1,5 @@
 package application.conversation
 
-import domain.conversation.ConversationOutput
-import domain.conversation.ConversationStep
-
 interface ConversationFlow {
     fun start(): ConversationOutput
 

@@ -1,6 +1,5 @@
 package application.conversation
 
-import domain.conversation.ConversationStep
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -9,7 +8,7 @@ class ConversationEngineRestartTest {
 
     @Test
     fun `같은 단계에서 3번 틀리면 RESTART_CONFIRM 단계로 전환된다`() {
-        val engine = ConversationEngine()
+        val engine = ConsoleConversationFlow()
         var out = engine.start()
 
         // ASK_TOTAL_AMOUNT 단계에서 일부러 3번 잘못 입력
@@ -23,7 +22,7 @@ class ConversationEngineRestartTest {
 
     @Test
     fun `RESTART_CONFIRM에서 Y를 입력하면 완전히 처음 상태로 돌아간다`() {
-        val engine = ConversationEngine()
+        val engine = ConsoleConversationFlow()
         var out = engine.start()
 
         // 일부 입력 후, RESTART_CONFIRM까지 유도
@@ -43,7 +42,7 @@ class ConversationEngineRestartTest {
 
     @Test
     fun `RESTART_CONFIRM에서 N을 입력하면 직전 단계로 돌아간다`() {
-        val engine = ConversationEngine()
+        val engine = ConsoleConversationFlow()
         var out = engine.start()
 
         out = engine.handle(out.nextStep, "abc", out.context)

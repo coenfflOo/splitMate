@@ -2,7 +2,7 @@ package application.group
 
 import application.conversation.ConversationContext
 import application.conversation.ConversationFlow
-import domain.conversation.ConversationOutput
+import application.conversation.ConversationOutput
 import org.springframework.stereotype.Service
 import java.util.concurrent.ConcurrentHashMap
 

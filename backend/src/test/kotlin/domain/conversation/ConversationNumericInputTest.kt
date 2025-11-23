@@ -1,7 +1,6 @@
 // src/test/kotlin/application/conversation/ConversationNumericInputTest.kt
 package application.conversation
 
-import domain.conversation.ConversationStep
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 
@@ -9,7 +8,7 @@ class ConversationNumericInputTest {
 
     @Test
     fun `팁 퍼센트 단계에서 숫자가 아닌 값 입력 시 재질문한다`() {
-        val engine = ConversationEngine()
+        val engine = ConsoleConversationFlow()
         // start
         var output = engine.start()
         var ctx = output.context as ConversationContext
@@ -40,7 +39,7 @@ class ConversationNumericInputTest {
 
     @Test
     fun `인원 수 단계에서 0이나 음수 입력 시 재질문한다`() {
-        val engine = ConversationEngine()
+        val engine = ConsoleConversationFlow()
         val ctx = ConversationContext()
 
         val output = engine.handle(
@@ -57,7 +56,7 @@ class ConversationNumericInputTest {
 
     @Test
     fun `환율 수동 입력 단계에서 숫자가 아니면 재질문한다`() {
-        val engine = ConversationEngine()
+        val engine = ConsoleConversationFlow()
         val ctx = ConversationContext(wantKrw = true)
 
         val output = engine.handle(

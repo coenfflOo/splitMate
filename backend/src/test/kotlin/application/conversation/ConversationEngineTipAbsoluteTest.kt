@@ -17,7 +17,7 @@ class ConversationEngineTipAbsoluteTest {
 
     @Test
     fun `팁 금액 모드로 10달러 입력 - KRW 자동 환산 포함 요약`() {
-        val engine = ConversationEngine(ExchangeService(FakeProvider1000()))
+        val engine = ConsoleConversationFlow(ExchangeService(FakeProvider1000()))
         var out = engine.start()
 
         out = engine.handle(out.nextStep, "27.40", out.context)  // 총액
@@ -42,7 +42,7 @@ class ConversationEngineTipAbsoluteTest {
 
     @Test
     fun `팁 없음 모드(3) 선택 시 팁 0원 처리`() {
-        val engine = ConversationEngine(ExchangeService(FakeProvider1000()))
+        val engine = ConsoleConversationFlow(ExchangeService(FakeProvider1000()))
         var out = engine.start()
         out = engine.handle(out.nextStep, "10.00", out.context)  // 총액
         out = engine.handle(out.nextStep, "0", out.context)      // 세금

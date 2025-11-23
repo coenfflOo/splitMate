@@ -1,6 +1,5 @@
 package application.conversation
 
-import domain.conversation.ConversationStep
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -8,7 +7,7 @@ import kotlin.test.assertFalse
 
 class ConversationEngineTest {
 
-    private val engine = ConversationEngine()
+    private val engine = ConsoleConversationFlow()
 
     @Test
     fun `대화 시작시 총 금액을 물어본다`() {
@@ -20,7 +19,7 @@ class ConversationEngineTest {
 
     @Test
     fun `행복 경로 - 총액부터 1인당 금액 계산까지 흐름이 이어진다`() {
-        val engine = ConversationEngine()
+        val engine = ConsoleConversationFlow()
 
         // start
         val start = engine.start()
