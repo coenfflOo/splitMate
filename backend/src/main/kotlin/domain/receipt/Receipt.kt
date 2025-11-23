@@ -1,7 +1,6 @@
 package domain.receipt
 
 import domain.money.Money
-import kotlin.plus
 
 data class Receipt(
     val baseAmount: Money,

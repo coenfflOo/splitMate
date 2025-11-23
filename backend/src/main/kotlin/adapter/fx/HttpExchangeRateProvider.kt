@@ -30,9 +30,6 @@ class HttpExchangeRateProvider(
         )
     }
 
-    /**
-     * 오늘 날짜 기준으로 AP01(환율) 데이터를 조회한다.
-     */
     private fun callApiForToday(): String {
         val today = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"))
         val urlString = "$baseUrl?authkey=$authKey&searchdate=$today&data=AP01"
@@ -51,10 +48,6 @@ class HttpExchangeRateProvider(
         return conn.inputStream.bufferedReader().use { it.readText() }
     }
 
-    /**
-     * JSON 문자열에서 특정 통화(cur_unit)의 객체를 찾아 deal_bas_r 값을 추출한다.
-     * 아주 러프한 파서지만, 이번 과제 범위에서는 충분.
-     */
     private fun extractDealBasR(json: String, curUnit: String): String {
         val objectRegex = Regex("""\{[^}]*"cur_unit"\s*:\s*"$curUnit"[^}]*}""")
         val objectMatch = objectRegex.find(json)

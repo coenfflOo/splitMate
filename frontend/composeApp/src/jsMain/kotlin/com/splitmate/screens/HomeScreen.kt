@@ -21,7 +21,6 @@ fun HomeScreen(
             backgroundColor(rgb(248, 249, 252))
         }
     }) {
-        // 헤더 영역
         Div({
             style {
                 textAlign("center")
@@ -46,7 +45,6 @@ fun HomeScreen(
             }
         }
 
-        // 모드 선택 카드 영역
         Div({
             style {
                 display(DisplayStyle.Flex)

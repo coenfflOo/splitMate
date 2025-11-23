@@ -1,4 +1,3 @@
-// application.group.RoomNotFoundException
 package application.group
 
 class RoomNotFoundException(roomId: RoomId) :

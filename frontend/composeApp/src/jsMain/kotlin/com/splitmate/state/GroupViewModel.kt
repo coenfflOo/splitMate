@@ -171,7 +171,6 @@ class GroupViewModel {
         if (isChat) {
             val sender = msg.senderId ?: "상대"
 
-            // ✅ 내가 보낸 채팅의 서버 echo는 무시 (로컬에서 이미 찍었음)
             if (sender == myId) return
 
             uiState = uiState.copy(
@@ -199,10 +198,6 @@ class GroupViewModel {
         )
     }
 
-    fun startMenuFlow() {
-        uiState = uiState.copy(isMenuFlowActive = true)
-    }
-
     fun onRestartAnswer(answer: String) {
         if (answer.uppercase() == "Y") {
             uiState = uiState.copy(isMenuFlowActive = false)
@@ -214,10 +209,6 @@ class GroupViewModel {
         socketClient.disconnect()
     }
 
-    fun onTipModeSelected(mode: String) {
-        sendPresetInput(mode) // "PERCENT" / "ABSOLUTE" / "NONE"
-    }
-
     fun onSplitModeSelected(mode: String) {
         if (mode == "MENU_BASED") {
             sendPresetInput(mode)
@@ -225,15 +216,6 @@ class GroupViewModel {
             return
         }
         sendPresetInput(mode)
-    }
-
-    fun exitMenuFlow() {
-        uiState = uiState.copy(isMenuFlowActive = false)
-    }
-
-
-    fun onExchangeModeSelected(mode: String) {
-        sendPresetInput(mode) // "AUTO" / "MANUAL" / "NONE"
     }
 
     private fun sendPresetInput(value: String) {
@@ -263,20 +245,6 @@ class GroupViewModel {
         uiState = uiState.copy(
             messages = uiState.messages + "$memberId: $text",
             chatText = ""
-        )
-    }
-
-    fun sendMenuPayload(payload: String) {
-        val memberId = uiState.memberIdInput.trim()
-        val roomId = uiState.joinedRoomId
-        if (memberId.isEmpty() || roomId.isNullOrEmpty()) return
-
-        socketClient.sendGroupInput(memberId, payload)
-
-        // ✅ payload 문자열은 히스토리에 안 남기고, 깔끔한 시스템 라인만 남김
-        uiState = uiState.copy(
-            messages = uiState.messages + "서버: 메뉴별 결과를 전송했습니다. 다음 단계로 진행합니다.",
-            isMenuFlowActive = false
         )
     }
 

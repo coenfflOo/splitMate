@@ -53,7 +53,6 @@ class ConsoleApp(
 fun main() {
     val io = StdConsoleIO()
 
-    // 환경변수에서 인증키 읽기
     val authKey = System.getenv("KOREA_EXIM_AUTH_KEY")
     val engine =
         if (authKey.isNullOrBlank()) {

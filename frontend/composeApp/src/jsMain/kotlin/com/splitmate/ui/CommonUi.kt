@@ -3,16 +3,12 @@ package com.splitmate.ui
 import androidx.compose.runtime.Composable
 import org.jetbrains.compose.web.attributes.InputType
 import org.jetbrains.compose.web.dom.*
-import org.jetbrains.compose.web.attributes.*
 
-
-// 백엔드의 에러 응답을 프론트에서 공통으로 다루기 위한 모델.
 data class UiError(
     val code: String? = null,
     val message: String
 )
 
-// 상단 혹은 섹션 내에 띄우는 공통 에러 배너.
 @Composable
 fun ErrorBanner(
     error: UiError?,

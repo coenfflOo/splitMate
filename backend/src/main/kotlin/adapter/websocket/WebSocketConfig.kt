@@ -13,7 +13,6 @@ open class WebSocketConfig : WebSocketMessageBrokerConfigurer {
     override fun registerStompEndpoints(registry: StompEndpointRegistry) {
         registry.addEndpoint("/ws")
             .setAllowedOriginPatterns("*")
-        // .withSockJS()  // 필요하면 나중에
     }
 
     override fun configureMessageBroker(registry: MessageBrokerRegistry) {

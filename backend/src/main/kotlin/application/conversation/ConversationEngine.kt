@@ -1,6 +1,5 @@
 package application.conversation
 
-import application.conversation.ConversationContext
 import domain.conversation.ConversationOutput
 import domain.conversation.ConversationStep
 import domain.fx.ExchangeService
@@ -65,11 +64,10 @@ class ConversationEngine(
                     context = context,
                     isFinished = true
                 )
+
             ConversationStep.RESTART_CONFIRM -> handleRestartConfirm(input, context)
         }
     }
-
-    // ---------------- 금액/세금/팁 ----------------
 
     private fun handleTotalAmount(
         input: String,
@@ -93,7 +91,7 @@ class ConversationEngine(
         val baseMoney = Money.of(amount, Currency.CAD)
         val newContext = context.copy(
             baseAmount = baseMoney,
-            failureCount = 0    // ✅ 리셋
+            failureCount = 0
         )
 
         return ConversationOutput(
@@ -131,7 +129,7 @@ class ConversationEngine(
 
         val newContext = context.copy(
             taxAmount = taxMoney,
-            failureCount = 0      // ✅ 정상 입력 시 실패 카운트 리셋
+            failureCount = 0
         )
 
         return ConversationOutput(
@@ -143,28 +141,30 @@ class ConversationEngine(
 
     private fun handleTipMode(input: String, context: ConversationContext): ConversationOutput {
         return when (input.trim()) {
-            "1" -> { // 퍼센트
+            "1" -> {
                 ConversationOutput(
                     message = "팁 퍼센트를 입력해주세요. (예: 15)",
                     nextStep = ConversationStep.ASK_TIP_VALUE,
                     context = context.copy(tipMode = TipMode.PERCENT)
                 )
             }
-            "2" -> { // 절대 금액
+
+            "2" -> {
                 ConversationOutput(
                     message = "팁 금액($)을 입력해주세요. (예: 10.00)",
                     nextStep = ConversationStep.ASK_TIP_VALUE,
                     context = context.copy(tipMode = TipMode.ABSOLUTE)
                 )
             }
-            "3" -> { // 없음
-                // 바로 분배 방식으로 진행
+
+            "3" -> {
                 ConversationOutput(
                     message = "분배 방식을 선택해주세요. 1) N분의 1",
                     nextStep = ConversationStep.ASK_SPLIT_MODE,
                     context = context.copy(tipMode = TipMode.NONE, tipPercent = 0, tipAbsolute = null)
                 )
             }
+
             else -> retry(ConversationStep.ASK_TIP_MODE, "1) 퍼센트 2) 금액 3) 없음 중에서 선택해주세요.", context)
         }
     }
@@ -183,10 +183,11 @@ class ConversationEngine(
                     context = context.copy(tipPercent = p, tipAbsolute = null)
                 )
             }
+
             TipMode.ABSOLUTE -> {
                 val v = input.toBigDecimalOrNull()
                     ?: return retry(ConversationStep.ASK_TIP_VALUE, "숫자 금액으로 입력해주세요. (예: 10.00)", context)
-                if (v <= java.math.BigDecimal.ZERO) {
+                if (v <= BigDecimal.ZERO) {
                     return retry(ConversationStep.ASK_TIP_VALUE, "0보다 큰 값을 입력해주세요.", context)
                 }
                 ConversationOutput(
@@ -195,8 +196,8 @@ class ConversationEngine(
                     context = context.copy(tipAbsolute = Money.of(v, Currency.CAD))
                 )
             }
+
             TipMode.NONE, null -> {
-                // 안전망: NONE 처리로 진행
                 ConversationOutput(
                     message = "분배 방식을 선택해주세요. 1) N분의 1",
                     nextStep = ConversationStep.ASK_SPLIT_MODE,
@@ -246,7 +247,7 @@ class ConversationEngine(
 
         val nextCtx = context.copy(
             peopleCount = n,
-            failureCount = 0   // ✅ 리셋
+            failureCount = 0
         )
 
         val message = buildString {
@@ -263,20 +264,15 @@ class ConversationEngine(
         )
     }
 
-
-    // ---------------- 환율 모드/값 ----------------
-
     private fun handleExchangeMode(
         input: String,
         context: ConversationContext
     ): ConversationOutput {
         return when (input.trim()) {
 
-            // 1) 오늘 환율 자동 조회
             "1" -> {
                 val svc = exchangeService
                 if (svc == null) {
-                    // 자동 조회 자체 불가 → 곧바로 수동 입력 단계로 전이
                     return ConversationOutput(
                         message = "자동 환율 조회를 사용할 수 없습니다(키 미설정). 환율을 직접 입력해주세요 (예: 1000).",
                         nextStep = ConversationStep.ASK_EXCHANGE_RATE_VALUE,
@@ -285,10 +281,8 @@ class ConversationEngine(
                 }
 
                 return try {
-                    // 여기서 실제 API(혹은 FakeProvider)를 호출
                     val rate = svc.getCadToKrwRate()
 
-                    // 성공 시: 자동 조회로 얻은 rate를 manualRate에 넣고 바로 요약
                     summarize(
                         context.copy(
                             wantKrw = true,
@@ -296,7 +290,6 @@ class ConversationEngine(
                         )
                     )
                 } catch (e: Exception) {
-                    // 실패 시: 수동 입력 단계로 폴백
                     val msg = "환율 조회에 실패했습니다. 환율을 직접 입력해주세요 (예: 1000)."
                     ConversationOutput(
                         message = msg,
@@ -306,7 +299,6 @@ class ConversationEngine(
                 }
             }
 
-            // 2) 환율 직접 입력
             "2" -> {
                 ConversationOutput(
                     message = "환율을 숫자로 입력해주세요. 예) 1 CAD = 1000 KRW → 1000 입력",
@@ -315,7 +307,6 @@ class ConversationEngine(
                 )
             }
 
-            // 3) KRW 변환 없이 CAD만 보기
             "3" -> {
                 summarize(
                     context.copy(
@@ -325,7 +316,6 @@ class ConversationEngine(
                 )
             }
 
-            // 그 외 입력은 다시 모드 선택 단계로 재질문
             else -> {
                 retry(
                     step = ConversationStep.ASK_EXCHANGE_RATE_MODE,
@@ -367,6 +357,7 @@ class ConversationEngine(
             "y", "yes", "예", "네" -> {
                 start()
             }
+
             "n", "no", "아니오" -> {
                 val step = context.lastStep ?: ConversationStep.ASK_TOTAL_AMOUNT
 
@@ -395,7 +386,6 @@ class ConversationEngine(
                     ConversationStep.ASK_EXCHANGE_RATE_VALUE ->
                         "환율을 숫자로 입력해주세요. 예) 1000"
 
-                    // 🔽 새로 추가: 메뉴 관련 단계 (그냥 안내만)
                     ConversationStep.ASK_MENU_ITEMS ->
                         "메뉴를 다시 입력해주세요.\n예) 파스타 18.9; 피자 22; 콜라 3"
 
@@ -418,6 +408,7 @@ class ConversationEngine(
                     context = context.copy(failureCount = 0)
                 )
             }
+
             else -> {
                 ConversationOutput(
                     nextStep = ConversationStep.RESTART_CONFIRM,
@@ -429,27 +420,26 @@ class ConversationEngine(
     }
 
     private fun summarize(context: ConversationContext): ConversationOutput {
-        // 1. 기본 값 꺼내기
         val base = requireNotNull(context.baseAmount) { "baseAmount is required" }
         val taxMoney = context.taxAmount ?: Money.zero(Currency.CAD)
         val people = requireNotNull(context.peopleCount) { "peopleCount is required" }
 
-        // 2. TipMode에 따라 Tip 도메인 객체 만들기
         val tip = when (context.tipMode) {
             TipMode.PERCENT -> {
                 val percent = context.tipPercent ?: 0
                 Tip(mode = TipMode.PERCENT, percent = percent)
             }
+
             TipMode.ABSOLUTE -> {
                 val abs = context.tipAbsolute ?: Money.zero(Currency.CAD)
                 Tip(mode = TipMode.ABSOLUTE, absolute = abs)
             }
+
             TipMode.NONE, null -> {
                 Tip(mode = TipMode.NONE)
             }
         }
 
-        // 3. Receipt 만들고 N분의 1 계산
         val receipt = Receipt(
             baseAmount = base,
             tax = Tax(taxMoney),
@@ -460,14 +450,12 @@ class ConversationEngine(
         val totalCad = splitResult.total
         val perPersonCad = splitResult.perPerson
 
-        // 4. 기본 CAD 요약 메시지
         val sb = StringBuilder()
         sb.appendLine("=== 계산 결과 ===")
         sb.appendLine("총 금액: ${formatMoney(totalCad)}")
         sb.appendLine("인원 수: $people")
         sb.appendLine("1인당: ${formatMoney(perPersonCad)}")
 
-        // 5. KRW 옵션 처리 (환율 있는 경우)
         if (context.wantKrw && context.manualRate != null) {
             val krw = convertWithRate(perPersonCad, context.manualRate)
             sb.appendLine("환율: 1 CAD = ${formatRate(context.manualRate)} KRW")
@@ -488,8 +476,6 @@ class ConversationEngine(
             .setScale(2, RoundingMode.HALF_UP)
         return Money.of(krwAmount, Currency.KRW)
     }
-
-    // ---------------- 공통 유틸 ----------------
 
     private fun invalidNumber(
         step: ConversationStep,
@@ -576,12 +562,10 @@ class ConversationEngine(
 
         return when (m.currency) {
             Currency.CAD -> {
-                // 예: 10.00 CAD
                 "$plain CAD"
             }
 
             Currency.KRW -> {
-                // 예: 10000.00 -> 10,000.00 KRW
                 val withComma = formatWithComma(plain)
                 "$withComma KRW"
             }
@@ -603,7 +587,6 @@ class ConversationEngine(
     private fun formatRate(rate: BigDecimal): String {
         val scaled = rate.setScale(0, RoundingMode.HALF_UP).toPlainString()
         val withComma = formatWithComma("$scaled.00")
-        // "1000.00" -> "1,000.00" -> "1,000"
         return withComma.substringBefore(".")
     }
 }

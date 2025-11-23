@@ -18,8 +18,6 @@ class MenuSplitViewModel {
 
     var uiState by mutableStateOf(MenuSplitUiState())
         private set
-    var isLoading = false
-    var apiError: String? = null
 
     private var nextMenuId = 1
     private var nextParticipantId = 1
@@ -180,87 +178,6 @@ class MenuSplitViewModel {
         }
     }
 
-    fun goToResultStep() {
-        if (!validateAssignments()) return
-        uiState = uiState.copy(step = MenuStep.RESULT)
-        fetchBackendResult()
-    }
-
-//    private fun computeLocalResult(): MenuSplitResultUi {
-//        // 메뉴 가격 파싱
-//        val menuPriceMap: Map<Int, Double> = uiState.menuItems.associate { item ->
-//            val value = item.priceInput.replace(",", "").toDoubleOrNull() ?: 0.0
-//            item.id to value
-//        }
-//
-//        // 참가자별 subtotal 계산
-//        val subtotalMap = mutableMapOf<Int, Double>()
-//
-//        uiState.assignments.forEach { (menuId, participantIds) ->
-//            val price = menuPriceMap[menuId] ?: 0.0
-//            if (participantIds.isEmpty()) return@forEach
-//
-//            val share = price / participantIds.size
-//            participantIds.forEach { pid ->
-//                val current = subtotalMap[pid] ?: 0.0
-//                subtotalMap[pid] = current + share
-//            }
-//        }
-//
-//        val perPersonTotals = uiState.participants.map { participant ->
-//            val subtotal = subtotalMap[participant.id] ?: 0.0
-//            PerPersonTotalUi(
-//                participantName = participant.name.ifBlank { "참가자 ${participant.id}" },
-//                subtotal = subtotal
-//            )
-//        }
-//
-//        val totalAmount = menuPriceMap.values.sum()
-//
-//        return MenuSplitResultUi(
-//            perPersonTotals = perPersonTotals,
-//            totalAmount = totalAmount
-//        )
-//    }
-
-    private fun buildRequest(): MenuSplitRequestDto? {
-        val s = uiState
-
-        if (s.menuItems.isEmpty() || s.participants.isEmpty()) return null
-
-        val items = s.menuItems.map {
-            val price = it.priceInput.replace(",", "")
-            MenuItemDto(
-                id = it.id.toString(),
-                name = it.name,
-                price = price
-            )
-        }
-
-        val participants = s.participants.map {
-            MenuParticipantDto(
-                id = it.id.toString(),
-                name = it.name
-            )
-        }
-
-        val assignments = s.assignments.map { (menuId, set) ->
-            MenuAssignmentDto(
-                menuId = menuId.toString(),
-                participantIds = set.map { it.toString() }
-            )
-        }
-
-        return MenuSplitRequestDto(
-            items = items,
-            participants = participants,
-            assignments = assignments,
-            taxAmount = "0", // 현재는 LOCAL 계산과 동일 (세금 단계 없음)
-            tip = TipRequestDto(mode = "NONE"),
-            exchange = ExchangeOptionRequestDto(mode = "NONE")
-        )
-    }
-
     fun fetchBackendResult() {
         if (uiState.isLoading || uiState.result != null) return
 
@@ -391,8 +308,10 @@ class MenuSplitViewModel {
         return when (mode) {
             SoloTipMode.PERCENT ->
                 if (number < 0.0 || number > 100.0) "0 ~ 100 사이만 입력 가능" else null
+
             SoloTipMode.ABSOLUTE ->
                 if (number <= 0.0) "0보다 큰 금액을 입력해주세요." else null
+
             SoloTipMode.NONE -> null
         }
     }
@@ -465,7 +384,6 @@ class MenuSplitViewModel {
     private fun buildMenuSplitRequestOrNull(): MenuSplitRequestDto? {
         val s = uiState
 
-        // 메뉴 아이템
         val items = s.menuItems.map { item ->
             val price = item.priceInput.replace(",", "").trim()
             if (item.name.isBlank() || price.toDoubleOrNull() == null) return null
@@ -476,7 +394,6 @@ class MenuSplitViewModel {
             )
         }
 
-        // 참가자
         val participants = s.participants.map { p ->
             if (p.name.isBlank()) return null
             MenuParticipantDto(
@@ -485,7 +402,6 @@ class MenuSplitViewModel {
             )
         }
 
-        // 매칭
         val assignments = s.assignments.map { (menuId, pids) ->
             if (pids.isEmpty()) return null
             MenuAssignmentDto(
@@ -506,6 +422,7 @@ class MenuSplitViewModel {
                 mode = "PERCENT",
                 percent = s.tipValueInput.replace(",", "").toDoubleOrNull()?.toInt() ?: return null
             )
+
             SoloTipMode.ABSOLUTE -> TipRequestDto(
                 mode = "ABSOLUTE",
                 absolute = s.tipValueInput.replace(",", "").trim()
@@ -531,5 +448,4 @@ class MenuSplitViewModel {
             exchange = exchangeDto
         )
     }
-
 }

@@ -7,7 +7,6 @@ import org.jetbrains.compose.web.css.*
 import org.jetbrains.compose.web.dom.*
 import com.splitmate.screens.SoloSplitScreen
 
-// 간단한 화면 enum
 enum class Screen {
     Home,
     Solo,
@@ -46,7 +45,6 @@ fun App() {
     }
 }
 
-// 기존 홈 내용을 분리
 @Composable
 private fun HomeScreen(
     goSolo: () -> Unit,

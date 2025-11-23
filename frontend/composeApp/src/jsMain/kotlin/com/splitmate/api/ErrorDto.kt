@@ -8,8 +8,3 @@ data class ErrorBodyDto(
     val message: String,
     val details: String? = null
 )
-
-@Serializable
-data class ErrorResponseDto(
-    val error: ErrorBodyDto
-)

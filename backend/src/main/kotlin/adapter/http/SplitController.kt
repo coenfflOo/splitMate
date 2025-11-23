@@ -25,16 +25,12 @@ class SplitController(
 
     @PostMapping("/even")
     fun splitEven(@RequestBody request: SplitEvenRequest): ResponseEntity<Any> {
-        val currency = when (request.currency.uppercase()) {
-            "CAD" -> Currency.CAD
-            "KRW" -> Currency.KRW
-            else -> Currency.CAD
-        }
+        val currency = parseCurrency(request.currency)
 
         val baseAmount = Money.of(request.totalAmount, currency)
         val taxAmount = Money.of(request.taxAmount, currency)
         val tax = Tax(taxAmount)
-        val tip: Tip? = toDomainTip(request.tip, currency)
+        val tip = toDomainTip(request.tip, currency)
 
         val receipt = Receipt(baseAmount = baseAmount, tax = tax, tip = tip)
         val result = SplitCalculator.splitEvenly(receipt = receipt, peopleCount = request.peopleCount)
@@ -47,19 +43,8 @@ class SplitController(
             "NONE" -> null to null
 
             "MANUAL" -> {
-                val manual = request.exchange.manualRate
-                    ?: throw IllegalArgumentException("manualRate is required when exchange.mode=MANUAL")
-
-                val rate = manual.toBigDecimalOrNull()
-                    ?: throw IllegalArgumentException("manualRate must be a number")
-
-                if (rate <= java.math.BigDecimal.ZERO) {
-                    throw IllegalArgumentException("manualRate must be > 0")
-                }
-
-                val krwAmount = perPersonCad.amount.multiply(rate)
-                    .setScale(2, java.math.RoundingMode.HALF_UP)
-
+                val (rate, manual) = parseManualRate(request.exchange)
+                val krwAmount = perPersonCad.amount.multiply(rate).setScale(2, RoundingMode.HALF_UP)
                 val exch = ExchangeOptionResponse(
                     mode = "MANUAL",
                     rate = manual,
@@ -71,13 +56,9 @@ class SplitController(
 
             "AUTO" -> {
                 try {
-                    val svc = this.exchangeService
-                        ?: throw IllegalStateException("AUTO exchange mode is unavailable")
-
+                    val svc = this.exchangeService ?: throw IllegalStateException("AUTO exchange mode is unavailable")
                     val rate = svc.getCadToKrwRate().rate
-                    val krwAmount = perPersonCad.amount.multiply(rate)
-                        .setScale(2, java.math.RoundingMode.HALF_UP)
-
+                    val krwAmount = perPersonCad.amount.multiply(rate).setScale(2, RoundingMode.HALF_UP)
                     val exch = ExchangeOptionResponse(
                         mode = "AUTO",
                         rate = rate.stripTrailingZeros().toPlainString(),
@@ -85,8 +66,8 @@ class SplitController(
                     )
                     exch to krwAmount.toPlainString()
                 } catch (e: Exception) {
-                    val body = adapter.http.dto.ErrorResponse(
-                        error = adapter.http.dto.ErrorBody(
+                    val body = ErrorResponse(
+                        error = ErrorBody(
                             code = "EXCHANGE_UNAVAILABLE",
                             message = "Failed to fetch exchange rate"
                         )
@@ -99,7 +80,7 @@ class SplitController(
         }
 
         val response = SplitEvenResponse(
-            currency = "CAD",
+            currency = Currency.CAD.name,
             totalAmountCad = formatMoneyPlain(totalCad),
             peopleCount = request.peopleCount,
             perPersonCad = formatMoneyPlain(perPersonCad),
@@ -109,18 +90,10 @@ class SplitController(
         return ResponseEntity.ok(response)
     }
 
-
-
-    // src/main/kotlin/adapter/http/SplitController.kt
     @PostMapping("/by-menu")
-    fun splitByMenu(@RequestBody request: MenuSplitRequest): ResponseEntity<MenuSplitResponse> {
-        val currency = when (request.currency.uppercase()) {
-            "CAD" -> Currency.CAD
-            "KRW" -> Currency.KRW
-            else  -> Currency.CAD
-        }
+    fun splitByMenu(@RequestBody request: MenuSplitRequest): ResponseEntity<Any> {
+        val currency = parseCurrency(request.currency)
 
-        // 1) 도메인 객체 변환
         val itemsById: Map<String, MenuItem> = request.items.associate { mi ->
             mi.id to MenuItem(
                 id = mi.id,
@@ -142,7 +115,6 @@ class SplitController(
             MenuAssignment(menuItem = menu, participants = ps)
         }
 
-        // 2) 영수증: baseAmount = 모든 메뉴 합
         val baseAmount = request.items
             .map { Money.of(it.price, currency) }
             .fold(Money.zero(currency)) { acc, m -> acc + m }
@@ -156,60 +128,42 @@ class SplitController(
             tip = tip
         )
 
-        // 3) 분배 계산
         val result = SplitCalculator.splitByMenu(
             receipt = receipt,
             assignments = assignments
         )
 
-        // 4) 환율 처리
         val mode = request.exchange.mode.uppercase()
         val (exchangeResponse, perPersonKrwList) = when (mode) {
-            "NONE" -> {
-                null to List(result.shares.size) { null }
-            }
+            "NONE" -> null to List(result.shares.size) { null }
 
             "MANUAL" -> {
-                val manual = request.exchange.manualRate
-                    ?: throw IllegalArgumentException("manualRate is required when exchange.mode=MANUAL")
-
-                val rate = manual.toBigDecimalOrNull()
-                    ?: throw IllegalArgumentException("manualRate must be a number")
-
-                require(rate > BigDecimal.ZERO) { "manualRate must be > 0" }
-
+                val (rate, manual) = parseManualRate(request.exchange)
                 val exch = ExchangeOptionResponse(
                     mode = "MANUAL",
                     rate = manual,
                     targetCurrency = "KRW"
                 )
-
                 val krwList = result.shares.map { share ->
                     val krwMoney = convert(share.total, rate)
                     krwMoney.amount.setScale(2, RoundingMode.HALF_UP).toPlainString()
                 }
-
                 exch to krwList
             }
 
             "AUTO" -> {
                 try {
-                    val svc = this.exchangeService
-                        ?: throw IllegalStateException("AUTO exchange mode is unavailable")
-
+                    val svc = this.exchangeService ?: throw IllegalStateException("AUTO exchange mode is unavailable")
                     val rate = svc.getCadToKrwRate().rate
-
                     val exch = ExchangeOptionResponse(
                         mode = "AUTO",
                         rate = rate.stripTrailingZeros().toPlainString(),
                         targetCurrency = "KRW"
                     )
-
                     val krwList = result.shares.map { share ->
                         val krwMoney = convert(share.total, rate)
                         krwMoney.amount.setScale(2, RoundingMode.HALF_UP).toPlainString()
                     }
-
                     exch to krwList
                 } catch (e: Exception) {
                     val body = ErrorResponse(
@@ -218,16 +172,13 @@ class SplitController(
                             message = "Failed to fetch exchange rate"
                         )
                     )
-                    return ResponseEntity.status(502).body(body) as ResponseEntity<MenuSplitResponse>
+                    return ResponseEntity.status(502).body(body)
                 }
             }
 
-            else -> {
-                null to List(result.shares.size) { null }
-            }
+            else -> null to List(result.shares.size) { null }
         }
 
-        // 5) 응답 매핑
         val participantsResp = result.shares.mapIndexed { index, share ->
             ParticipantShareResponse(
                 id = share.participant.id,
@@ -241,7 +192,7 @@ class SplitController(
         }
 
         val resp = MenuSplitResponse(
-            currency = "CAD",
+            currency = Currency.CAD.name,
             totalAmountCad = formatMoneyPlain(result.total),
             exchange = exchangeResponse,
             participants = participantsResp
@@ -253,7 +204,12 @@ class SplitController(
     @GetMapping("/health")
     fun health(): String = "OK"
 
-    // ---------------- helpers ----------------
+    private fun parseCurrency(code: String): Currency =
+        when (code.uppercase()) {
+            "CAD" -> Currency.CAD
+            "KRW" -> Currency.KRW
+            else -> Currency.CAD
+        }
 
     private fun toDomainTip(tipRequest: TipRequest, currency: Currency): Tip? =
         when (tipRequest.mode.uppercase()) {
@@ -262,14 +218,26 @@ class SplitController(
                     ?: throw IllegalArgumentException("percent is required when tip mode is PERCENT")
                 Tip(mode = TipMode.PERCENT, percent = percent, absolute = null)
             }
+
             "ABSOLUTE" -> {
                 val absStr = tipRequest.absolute
                     ?: throw IllegalArgumentException("absolute is required when tip mode is ABSOLUTE")
                 Tip(mode = TipMode.ABSOLUTE, percent = null, absolute = Money.of(absStr, currency))
             }
+
             "NONE" -> null
+
             else -> null
         }
+
+    private fun parseManualRate(exchange: ExchangeOptionRequest): Pair<BigDecimal, String> {
+        val manual = exchange.manualRate
+            ?: throw IllegalArgumentException("manualRate is required when exchange.mode=MANUAL")
+        val rate = manual.toBigDecimalOrNull()
+            ?: throw IllegalArgumentException("manualRate must be a number")
+        require(rate > BigDecimal.ZERO) { "manualRate must be > 0" }
+        return rate to manual
+    }
 
     private fun convert(cad: Money, rate: BigDecimal): Money {
         val v = cad.amount.multiply(rate).setScale(2, RoundingMode.HALF_UP)
@@ -278,14 +246,4 @@ class SplitController(
 
     private fun formatMoneyPlain(money: Money): String =
         money.amount.setScale(2, RoundingMode.HALF_UP).toPlainString()
-
-    private fun formatRateForResponse(rate: BigDecimal): String {
-        val rounded = rate.setScale(0, RoundingMode.HALF_UP).toPlainString()
-        return addComma(rounded)
-    }
-
-    private fun addComma(intStr: String): String {
-        val s = intStr.reversed().chunked(3).joinToString(",").reversed()
-        return s
-    }
 }

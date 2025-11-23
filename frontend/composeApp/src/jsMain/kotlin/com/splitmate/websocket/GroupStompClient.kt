@@ -1,9 +1,6 @@
 package com.splitmate.websocket
 
 import kotlinx.coroutines.MainScope
-import kotlinx.coroutines.launch
-import kotlinx.serialization.json.Json
-import org.w3c.dom.CloseEvent
 import org.w3c.dom.MessageEvent
 import org.w3c.dom.WebSocket
 import org.w3c.dom.events.Event
@@ -12,12 +9,10 @@ class GroupStompClient(
     private val wsUrl: String = "ws://localhost:8080/ws"
 ) {
 
-    private val scope = MainScope() // 지금은 안 써도 되지만 나중 확장용으로 남겨둬도 OK
-
     private var socket: WebSocket? = null
     private var currentRoomId: String? = null
 
-    // 외부에서 주입받을 콜백들
+
     var onConnected: (() -> Unit)? = null
     var onDisconnected: (() -> Unit)? = null
     var onGroupMessage: ((WsGroupMessage) -> Unit)? = null
@@ -26,7 +21,6 @@ class GroupStompClient(
 
     fun connect(roomId: String) {
         if (socket != null) {
-            // 이미 열려 있으면 일단 닫고 새로 열기
             disconnect()
         }
 
@@ -36,7 +30,6 @@ class GroupStompClient(
         socket = ws
 
         ws.onopen = {
-            // STOMP CONNECT
             sendFrame(
                 command = "CONNECT",
                 headers = mapOf(
@@ -45,7 +38,6 @@ class GroupStompClient(
                 )
             )
 
-            // 방 메시지 구독
             sendFrame(
                 command = "SUBSCRIBE",
                 headers = mapOf(
@@ -54,7 +46,6 @@ class GroupStompClient(
                 )
             )
 
-            // 에러 토픽 구독
             sendFrame(
                 command = "SUBSCRIBE",
                 headers = mapOf(
@@ -136,7 +127,6 @@ class GroupStompClient(
     }
 
     private fun handleIncomingFrame(text: String) {
-        // 아주 단순한 STOMP 파서: 첫 줄 = COMMAND, 그 뒤 헤더, 빈 줄 이후 body
         val headerEndIndex = text.indexOf("\n\n")
         if (headerEndIndex == -1) return
 
@@ -162,10 +152,8 @@ class GroupStompClient(
             "MESSAGE" -> {
                 val destination = headers["destination"].orEmpty()
                 if (destination.endsWith(".errors")) {
-                    // 에러 토픽
                     handleErrorBody(body)
                 } else {
-                    // 일반 그룹 메시지
                     handleGroupBody(body)
                 }
             }
@@ -175,13 +163,11 @@ class GroupStompClient(
             }
 
             else -> {
-                // CONNECTED 등은 현재 특별한 처리 없이 무시
             }
         }
     }
 
     private fun handleErrorBody(body: String) {
-        // body: {"code":"ROOM_NOT_FOUND","message":"..."}
         val dyn = JSON.parse<dynamic>(body)
         val code = dyn.code as? String ?: "UNKNOWN"
         val msg = dyn.message as? String ?: "알 수 없는 에러"

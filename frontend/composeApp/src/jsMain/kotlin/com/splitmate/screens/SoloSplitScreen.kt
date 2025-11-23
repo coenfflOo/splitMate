@@ -31,13 +31,13 @@ fun SoloSplitScreen(
         }
 
         when (uiState.step) {
-            SoloStep.TOTAL_AMOUNT        -> TotalAmountStep(uiState, viewModel)
-            SoloStep.TAX                 -> TaxStep(uiState, viewModel)
-            SoloStep.TIP_MODE            -> TipModeStep(uiState, viewModel)
-            SoloStep.TIP_VALUE           -> TipValueStep(uiState, viewModel)
-            SoloStep.SPLIT_MODE          -> SplitModeStep(viewModel)
-            SoloStep.PEOPLE_COUNT        -> PeopleCountStep(uiState, viewModel)
-            SoloStep.EXCHANGE_RATE_MODE  -> ExchangeRateModePlaceholder(uiState, viewModel)
+            SoloStep.TOTAL_AMOUNT -> TotalAmountStep(uiState, viewModel)
+            SoloStep.TAX -> TaxStep(uiState, viewModel)
+            SoloStep.TIP_MODE -> TipModeStep(uiState, viewModel)
+            SoloStep.TIP_VALUE -> TipValueStep(uiState, viewModel)
+            SoloStep.SPLIT_MODE -> SplitModeStep(viewModel)
+            SoloStep.PEOPLE_COUNT -> PeopleCountStep(uiState, viewModel)
+            SoloStep.EXCHANGE_RATE_MODE -> ExchangeRateModePlaceholder(uiState, viewModel)
             SoloStep.EXCHANGE_RATE_VALUE -> ExchangeRateValuePlaceholder(uiState, viewModel)
             SoloStep.RESULT -> ResultPlaceholder(uiState, viewModel, goHome)
         }
@@ -119,7 +119,6 @@ private fun TaxStep(
             }
         )
 
-        // '없음' 선택 버튼 (선택형 옵션 제공)
         Button(attrs = {
             onClick { viewModel.onTaxNoneClick() }
         }) {
@@ -198,6 +197,7 @@ private fun TipModeStep(
             val label = when (uiState.tipMode) {
                 SoloTipMode.PERCENT,
                 SoloTipMode.ABSOLUTE -> "다음 단계로 (팁 값 입력)"
+
                 SoloTipMode.NONE -> "다음 단계로 (분배 방식 선택)"
                 null -> "다음 단계로"
             }
@@ -219,24 +219,15 @@ private fun SplitModeStep(
         P { Text("분배 방식") }
 
         Div({ classes(AppStyles.buttonRow) }) {
-            // ✅ N분의 1만 실제로 동작
             Button(attrs = {
                 onClick { viewModel.onSplitModeNDivideSelected() }
             }) {
                 Text("1) N분의 1")
             }
-
-            // 메뉴별은 아직 준비 중
-            Button(attrs = {
-                // 아직 미구현이므로 비활성화
-                disabled()
-            }) {
-                Text("2) 메뉴별 계산 (준비 중)")
-            }
         }
 
         P {
-            Text("지금은 N분의 1 방식만 사용할 수 있습니다. 메뉴별 계산은 추후 지원 예정입니다.")
+            Text("지금은 N분의 1 방식만 사용할 수 있습니다. 다른 옵션들은 추후 지원 예정입니다.")
         }
     }
 }
@@ -256,7 +247,6 @@ private fun PeopleCountStep(
             Text("인원 수")
         }
 
-        // 🔽 type을 Number → Text로, min(...) 제거
         Input(
             type = InputType.Text,
             attrs = {
@@ -448,7 +438,6 @@ private fun ResultPlaceholder(
     viewModel: SoloSplitViewModel,
     goHome: () -> Unit
 ) {
-    // RESULT 화면에 진입하면 한 번만 백엔드에 계산 요청
     LaunchedEffect(Unit) {
         viewModel.requestBackendResult()
     }

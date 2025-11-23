@@ -142,9 +142,6 @@ class SimpleConversationFlow(
         }
     }
 
-    // ---------------------------
-    // 4) TIP VALUE
-    // ---------------------------
     private fun handleTipValue(input: String, ctx: ConversationContext): ConversationOutput {
         val mode = ctx.tipMode ?: TipMode.NONE
 
@@ -169,7 +166,6 @@ class SimpleConversationFlow(
             failureCount = 0
         )
 
-        // Tip이 끝나면 splitMode가 N_DIVIDE인 경우 사람수로 바로
         return ConversationOutput(
             message = "인원 수를 입력해주세요. (예: 3)",
             nextStep = ConversationStep.ASK_PEOPLE_COUNT,
@@ -177,9 +173,6 @@ class SimpleConversationFlow(
         )
     }
 
-    // ---------------------------
-    // 5) SPLIT MODE
-    // ---------------------------
     private fun handleSplitMode(input: String, ctx: ConversationContext): ConversationOutput {
         val mode = parseSplitMode(input) ?: return retry(
             ctx, ConversationStep.ASK_SPLIT_MODE,
@@ -195,7 +188,7 @@ class SimpleConversationFlow(
         return when (mode) {
             SplitMode.N_DIVIDE -> ConversationOutput(
                 message = "총 결제 금액을 입력해주세요. (예: 27.40)",
-                nextStep = ConversationStep.ASK_TOTAL_AMOUNT,   // ✅ 이제 여기서부터 총액 시작
+                nextStep = ConversationStep.ASK_TOTAL_AMOUNT,
                 context = newCtx
             )
 
@@ -205,15 +198,12 @@ class SimpleConversationFlow(
                 형식: "이름 가격; 이름 가격; ..."
                 예) 파스타 18.9; 피자 22; 콜라 3
             """.trimIndent(),
-                nextStep = ConversationStep.ASK_MENU_ITEMS,      // ✅ 메뉴 플로우 바로 진입
+                nextStep = ConversationStep.ASK_MENU_ITEMS,
                 context = newCtx
             )
         }
     }
 
-    // ---------------------------
-    // 6) PEOPLE COUNT
-    // ---------------------------
     private fun handlePeopleCount(input: String, ctx: ConversationContext): ConversationOutput {
         val n = input.trim().toIntOrNull()
         if (n == null || n < 1) {
@@ -288,9 +278,6 @@ class SimpleConversationFlow(
         )
     }
 
-    // ---------------------------
-    // 8) MENU PARTICIPANTS
-    // ---------------------------
     private fun handleMenuParticipants(input: String, ctx: ConversationContext): ConversationOutput {
         val participants = parseParticipants(input)
             ?: return retry(ctx, ConversationStep.ASK_MENU_PARTICIPANTS, "참가자 이름을 쉼표로 구분해 입력해주세요.")
@@ -322,9 +309,6 @@ class SimpleConversationFlow(
         )
     }
 
-    // ---------------------------
-    // 9) MENU ASSIGNMENTS
-    // ---------------------------
     private fun handleMenuAssignments(input: String, ctx: ConversationContext): ConversationOutput {
         if (input.startsWith("MENU_PAYLOAD:")) {
             val parsed = parseMenuPayload(input)
@@ -378,10 +362,6 @@ class SimpleConversationFlow(
         )
     }
 
-
-    // ---------------------------
-    // 10) EXCHANGE MODE
-    // ---------------------------
     private fun handleExchangeMode(input: String, ctx: ConversationContext): ConversationOutput {
         val mode = input.trim().lowercase()
 
@@ -425,8 +405,6 @@ class SimpleConversationFlow(
                     failureCount = 0
                 )
 
-                // ✅ "CAD만 계산합니다" 안내는 굳이 별도 단계로 안 보내고
-                //    결과 메시지 안에서 자연스럽게 CAD만 출력
                 showResult(newCtx)
             }
 
@@ -434,9 +412,6 @@ class SimpleConversationFlow(
         }
     }
 
-    // ---------------------------
-    // 11) EXCHANGE VALUE
-    // ---------------------------
     private fun handleExchangeValue(input: String, ctx: ConversationContext): ConversationOutput {
         val rate = parsePositiveDecimal(input)
             ?: return retry(ctx, ConversationStep.ASK_EXCHANGE_RATE_VALUE, "환율은 0보다 큰 숫자로 입력해주세요.")
@@ -455,9 +430,6 @@ class SimpleConversationFlow(
         )
     }
 
-    // ---------------------------
-    // 12) SHOW RESULT
-    // ---------------------------
     private fun showResult(ctx: ConversationContext): ConversationOutput {
         val base = ctx.baseAmount ?: return retry(ctx, ConversationStep.ASK_TOTAL_AMOUNT, "총 금액부터 다시 입력해주세요.")
         val tax = ctx.taxAmount ?: Money.zero(base.currency)
@@ -555,9 +527,6 @@ class SimpleConversationFlow(
         )
     }
 
-    // ---------------------------
-    // 13) RESTART
-    // ---------------------------
     private fun handleRestart(input: String, ctx: ConversationContext): ConversationOutput {
         return when (input.trim().lowercase()) {
             "1", "y", "yes", "네", "응" -> start()
@@ -571,9 +540,6 @@ class SimpleConversationFlow(
         }
     }
 
-    // ---------------------------
-    // helpers
-    // ---------------------------
     private fun retry(ctx: ConversationContext, step: ConversationStep, msg: String): ConversationOutput {
         val newCtx = ctx.copy(
             failureCount = ctx.failureCount + 1,
@@ -679,7 +645,6 @@ class SimpleConversationFlow(
             map[menuId] = pids
         }
 
-        // 모든 메뉴가 최소 1명 배정되었는지 체크
         if (!menus.all { map[it]?.isNotEmpty() == true }) return null
 
         return map

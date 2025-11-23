@@ -12,7 +12,6 @@ class ExchangeService(
         return provider.getRate(Currency.CAD, Currency.KRW)
     }
 
-    // 주어진 Money를 환율에 따라 target 통화로 변환한다.
     fun convert(money: Money, rate: ExchangeRate): Money {
         require(money.currency == rate.base) {
             "Money currency (${money.currency}) must match rate base (${rate.base})"

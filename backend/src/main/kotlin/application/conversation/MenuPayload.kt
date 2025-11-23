@@ -8,6 +8,7 @@ private data class MenuPayload(
     val participants: List<MenuPayloadParticipant>,
     val assignments: List<MenuPayloadAssignment>
 )
+
 private data class MenuPayloadItem(val id: String, val name: String, val price: String)
 private data class MenuPayloadParticipant(val id: String, val name: String)
 private data class MenuPayloadAssignment(val menuId: String, val participantIds: List<String>)

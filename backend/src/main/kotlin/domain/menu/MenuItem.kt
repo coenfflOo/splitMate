@@ -7,7 +7,7 @@ import java.math.BigDecimal
 data class MenuItem(
     val id: String,
     val name: String,
-    val price: Money      // 보통 CAD
+    val price: Money
 ) {
     init {
         require(price.amount >= BigDecimal.ZERO) {

@@ -53,11 +53,6 @@ class GroupController(
         return ResponseEntity.ok(state.toResponse())
     }
 
-    /**
-     * 방 상태 조회 API
-     *
-     * GET /api/group/rooms/{roomId}
-     */
     @GetMapping("/rooms/{roomId}")
     fun getRoom(
         @PathVariable roomId: String
@@ -77,6 +72,4 @@ class GroupController(
             ResponseEntity.status(HttpStatus.NOT_FOUND).body(body)
         }
     }
-
-    // ----------------- private mapper -----------------
 }

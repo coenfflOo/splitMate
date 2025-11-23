@@ -33,7 +33,7 @@ import org.jetbrains.compose.web.dom.Tr
 @Composable
 fun MenuSplitScreen(
     goHome: () -> Unit,
-    viewModel: MenuSplitViewModel = remember { MenuSplitViewModel()}
+    viewModel: MenuSplitViewModel = remember { MenuSplitViewModel() }
 ) {
     val state = viewModel.uiState
 
@@ -163,7 +163,6 @@ private fun MenuItemsStep(
                     Text("메뉴 삭제")
                 }
 
-                // 구분선
                 Div({
                     style {
                         marginTop(12.px)
@@ -526,7 +525,7 @@ private fun MenuResultStep(
     H3 { Text("9단계: 결과") }
 
     LaunchedEffect(Unit) {
-        viewModel.fetchBackendResult()   // ✅ RESULT 들어오면 호출
+        viewModel.fetchBackendResult()
     }
 
     if (state.isLoading) {
@@ -547,7 +546,6 @@ private fun MenuResultStep(
         return
     }
 
-    // ✅ 여기부터는 result를 백엔드 기준으로 표시
     P { Text("총 결제 금액: ${result.totalAmountCad} CAD") }
     result.exchangeMode?.let { mode ->
         P { Text("환율 모드: $mode / 환율: ${result.exchangeRate ?: "-"}") }
@@ -582,7 +580,3 @@ private fun MenuResultStep(
         Text("다시 계산하기")
     }
 }
-
-@Suppress("UnsafeCastFromDynamic")
-private fun Double.format2(): String =
-    (this.asDynamic().toFixed(2) as String)

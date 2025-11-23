@@ -14,12 +14,6 @@ data class GroupJoinRoomRequestDto(
 )
 
 @Serializable
-data class GroupMessageRequestDto(
-    val memberId: String,
-    val input: String
-)
-
-@Serializable
 data class GroupRoomResponseDto(
     val roomId: String,
     val members: List<String> = emptyList(),

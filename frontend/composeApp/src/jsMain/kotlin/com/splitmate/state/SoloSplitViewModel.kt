@@ -126,7 +126,6 @@ class SoloSplitViewModel {
             SoloTipMode.ABSOLUTE -> uiState.copy(step = SoloStep.TIP_VALUE)
 
             SoloTipMode.NONE -> uiState.copy(
-                // 팁 없이 진행 → 바로 분배 방식 단계로 (2-5에서 구현)
                 step = SoloStep.SPLIT_MODE
             )
         }
@@ -285,7 +284,6 @@ class SoloSplitViewModel {
 
         if (error != null) return false
 
-        // TODO: 나중에 이 값으로 실제 API 요청하기
         uiState = uiState.copy(step = SoloStep.RESULT)
         return true
     }
@@ -304,77 +302,6 @@ class SoloSplitViewModel {
         }
 
         return null
-    }
-
-    fun computeResult(): SoloResult? {
-        val s = uiState
-
-        val base = s.amountInput.replace(",", "").toDoubleOrNull() ?: return null
-
-        val tax = when (s.taxInput.trim().lowercase()) {
-            "없음", "none", "no" -> 0.0
-            else -> s.taxInput.replace(",", "").toDoubleOrNull() ?: return null
-        }
-
-        val tip = when (s.tipMode) {
-            SoloTipMode.NONE, null -> 0.0
-
-            SoloTipMode.PERCENT -> {
-                val percent = s.tipValueInput.replace(",", "").toDoubleOrNull() ?: return null
-                val basePlusTax = base + tax
-                basePlusTax * (percent / 100.0)
-            }
-
-            SoloTipMode.ABSOLUTE -> {
-                s.tipValueInput.replace(",", "").toDoubleOrNull() ?: return null
-            }
-        }
-
-        val total = base + tax + tip
-
-        val people = s.peopleCountInput.trim().toIntOrNull() ?: return null
-        if (people <= 0) return null
-
-        val perPerson = total / people
-
-        val totalCadStr = "${total.format2()} CAD"
-        val perPersonCadStr = "${perPerson.format2()} CAD"
-
-        val perPersonKrwStr = when (s.exchangeMode) {
-            SoloExchangeMode.NONE, null -> null
-
-            SoloExchangeMode.AUTO -> {
-                // TODO: 실제 자동 환율 연동
-                null
-            }
-
-            SoloExchangeMode.MANUAL -> {
-                val rate = s.exchangeRateInput.replace(",", "").toDoubleOrNull()
-                if (rate == null || rate <= 0.0) {
-                    null
-                } else {
-                    val krw = perPerson * rate
-                    val rounded = kotlin.math.round(krw).toLong()
-                    "${rounded.formatWithComma()} KRW"
-                }
-            }
-        }
-
-        return SoloResult(
-            totalCad = totalCadStr,
-            perPersonCad = perPersonCadStr,
-            perPersonKrw = perPersonKrwStr
-        )
-    }
-
-    private fun Double.format2(): String =
-        (this.asDynamic().toFixed(2) as String)
-
-    private fun Long.formatWithComma(): String {
-        return toString().reversed()
-            .chunked(3)
-            .joinToString(",")
-            .reversed()
     }
 
     private fun buildSplitEvenRequestOrNull(): SplitEvenRequestDto? {
@@ -396,10 +323,12 @@ class SoloSplitViewModel {
                 val p = s.tipValueInput.replace(",", "").toDoubleOrNull() ?: return null
                 TipRequestDto(mode = "PERCENT", percent = p.toInt())
             }
+
             SoloTipMode.ABSOLUTE -> {
                 val abs = s.tipValueInput.replace(",", "").toDoubleOrNull() ?: return null
                 TipRequestDto(mode = "ABSOLUTE", absolute = abs.toString())
             }
+
             SoloTipMode.NONE -> TipRequestDto(mode = "NONE")
         }
 
@@ -428,7 +357,6 @@ class SoloSplitViewModel {
     }
 
     fun requestBackendResult() {
-        // 이미 결과가 있거나 로딩 중이면 다시 요청하지 않음
         if (uiState.isLoading || uiState.result != null) return
 
         val request = buildSplitEvenRequestOrNull()
