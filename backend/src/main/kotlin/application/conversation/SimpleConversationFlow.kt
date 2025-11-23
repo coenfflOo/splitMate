@@ -21,165 +21,36 @@ import java.math.RoundingMode
 @Component
 class SimpleConversationFlow(
     private val exchangeService: ExchangeService? = null
-) : ConversationFlow {
+) : BaseConversationFlow(exchangeService) {
 
     override fun start(): ConversationOutput {
         return ConversationOutput(
             message = """
-            GROUP 대화를 시작합니다!
-            분배 방식을 선택해주세요:
-            1) N분의1
-            2) 메뉴별 분배
-        """.trimIndent(),
+                GROUP 대화를 시작합니다!
+                분배 방식을 선택해주세요:
+                1) N분의1
+                2) 메뉴별 분배
+            """.trimIndent(),
             nextStep = ConversationStep.ASK_SPLIT_MODE,
             context = ConversationContext()
         )
     }
 
-    override fun handle(
-        step: ConversationStep,
-        input: String,
-        context: ConversationContext
-    ): ConversationOutput {
-        return when (step) {
-            ConversationStep.ASK_TOTAL_AMOUNT -> handleTotal(input, context)
-            ConversationStep.ASK_TAX -> handleTax(input, context)
-            ConversationStep.ASK_TIP_MODE -> handleTipMode(input, context)
-            ConversationStep.ASK_TIP_VALUE -> handleTipValue(input, context)
-            ConversationStep.ASK_SPLIT_MODE -> handleSplitMode(input, context)
-            ConversationStep.ASK_PEOPLE_COUNT -> handlePeopleCount(input, context)
+    override fun splitModePromptMessage(): String =
+        """
+            분배 방식을 선택해주세요:
+            1) N분의1
+            2) 메뉴별 분배
+        """.trimIndent()
 
-            ConversationStep.ASK_MENU_ITEMS -> handleMenuItems(input, context)
-            ConversationStep.ASK_MENU_PARTICIPANTS -> handleMenuParticipants(input, context)
-            ConversationStep.ASK_MENU_ASSIGNMENTS -> handleMenuAssignments(input, context)
+    override fun splitModeGuideMessage(): String =
+        "1(N분의1) / 2(메뉴별) 중 선택해주세요."
 
-            ConversationStep.ASK_EXCHANGE_RATE_MODE -> handleExchangeMode(input, context)
-            ConversationStep.ASK_EXCHANGE_RATE_VALUE -> handleExchangeValue(input, context)
+    override fun handleSplitMode(input: String, context: ConversationContext): ConversationOutput {
+        val mode = parseSplitMode(input)
+            ?: return retry(context, ConversationStep.ASK_SPLIT_MODE, splitModeGuideMessage())
 
-            ConversationStep.SHOW_RESULT -> showResult(context)
-            ConversationStep.RESTART_CONFIRM -> handleRestart(input, context)
-
-            else -> ConversationOutput(
-                message = "알 수 없는 단계입니다. 처음부터 다시 시작해주세요.",
-                nextStep = ConversationStep.ASK_TOTAL_AMOUNT,
-                context = ConversationContext()
-            )
-        }
-    }
-
-    private fun handleTotal(input: String, ctx: ConversationContext): ConversationOutput {
-        val amount = parsePositiveMoney(input) ?: return retry(
-            ctx, ConversationStep.ASK_TOTAL_AMOUNT,
-            "총 금액을 숫자로 입력해주세요. (예: 27.40)"
-        )
-
-        val newCtx = ctx.copy(
-            baseAmount = amount,
-            lastStep = ConversationStep.ASK_TOTAL_AMOUNT,
-            failureCount = 0
-        )
-
-        return ConversationOutput(
-            message = "세금 금액을 입력해주세요. 없으면 '없음' 또는 0",
-            nextStep = ConversationStep.ASK_TAX,
-            context = newCtx
-        )
-    }
-
-    private fun handleTax(input: String, ctx: ConversationContext): ConversationOutput {
-        val tax = parseTaxMoney(input) ?: return retry(
-            ctx, ConversationStep.ASK_TAX,
-            "세금은 숫자 또는 '없음'으로 입력해주세요."
-        )
-
-        val newCtx = ctx.copy(
-            taxAmount = tax,
-            lastStep = ConversationStep.ASK_TAX,
-            failureCount = 0
-        )
-
-        return ConversationOutput(
-            message = """
-                팁 방식을 선택해주세요:
-                1) 퍼센트
-                2) 금액
-                3) 없음
-            """.trimIndent(),
-            nextStep = ConversationStep.ASK_TIP_MODE,
-            context = newCtx
-        )
-    }
-
-    private fun handleTipMode(input: String, ctx: ConversationContext): ConversationOutput {
-        val mode = parseTipMode(input) ?: return retry(
-            ctx, ConversationStep.ASK_TIP_MODE,
-            "1(퍼센트) / 2(금액) / 3(없음) 중 선택해주세요."
-        )
-
-        val newCtx = ctx.copy(
-            tipMode = mode,
-            tipPercent = null,
-            tipAbsolute = null,
-            lastStep = ConversationStep.ASK_TIP_MODE,
-            failureCount = 0
-        )
-
-        return when (mode) {
-            TipMode.NONE -> ConversationOutput(
-                message = "인원 수를 입력해주세요. (예: 3)",
-                nextStep = ConversationStep.ASK_PEOPLE_COUNT,
-                context = newCtx
-            )
-
-            TipMode.PERCENT, TipMode.ABSOLUTE -> ConversationOutput(
-                message = if (mode == TipMode.PERCENT)
-                    "팁 퍼센트를 입력해주세요. (예: 15)"
-                else
-                    "팁 금액을 입력해주세요. (예: 10.00)",
-                nextStep = ConversationStep.ASK_TIP_VALUE,
-                context = newCtx
-            )
-        }
-    }
-
-    private fun handleTipValue(input: String, ctx: ConversationContext): ConversationOutput {
-        val mode = ctx.tipMode ?: TipMode.NONE
-
-        val newCtx = when (mode) {
-            TipMode.PERCENT -> {
-                val p = input.trim().toIntOrNull()
-                if (p == null || p < 0 || p > 100) {
-                    return retry(ctx, ConversationStep.ASK_TIP_VALUE, "0~100 사이 퍼센트를 입력해주세요.")
-                }
-                ctx.copy(tipPercent = p)
-            }
-
-            TipMode.ABSOLUTE -> {
-                val abs = parsePositiveMoney(input)
-                    ?: return retry(ctx, ConversationStep.ASK_TIP_VALUE, "팁 금액을 숫자로 입력해주세요.")
-                ctx.copy(tipAbsolute = abs)
-            }
-
-            TipMode.NONE -> ctx
-        }.copy(
-            lastStep = ConversationStep.ASK_TIP_VALUE,
-            failureCount = 0
-        )
-
-        return ConversationOutput(
-            message = "인원 수를 입력해주세요. (예: 3)",
-            nextStep = ConversationStep.ASK_PEOPLE_COUNT,
-            context = newCtx
-        )
-    }
-
-    private fun handleSplitMode(input: String, ctx: ConversationContext): ConversationOutput {
-        val mode = parseSplitMode(input) ?: return retry(
-            ctx, ConversationStep.ASK_SPLIT_MODE,
-            "1(N분의1) / 2(메뉴별) 중 선택해주세요."
-        )
-
-        val newCtx = ctx.copy(
+        val newCtx = context.copy(
             splitMode = mode,
             lastStep = ConversationStep.ASK_SPLIT_MODE,
             failureCount = 0
@@ -194,48 +65,23 @@ class SimpleConversationFlow(
 
             SplitMode.MENU_BASED -> ConversationOutput(
                 message = """
-                메뉴를 입력해주세요.
-                형식: "이름 가격; 이름 가격; ..."
-                예) 파스타 18.9; 피자 22; 콜라 3
-            """.trimIndent(),
+                    메뉴를 입력해주세요.
+                    형식: "이름 가격; 이름 가격; ..."
+                    예) 파스타 18.9; 피자 22; 콜라 3
+                """.trimIndent(),
                 nextStep = ConversationStep.ASK_MENU_ITEMS,
                 context = newCtx
             )
         }
     }
 
-    private fun handlePeopleCount(input: String, ctx: ConversationContext): ConversationOutput {
-        val n = input.trim().toIntOrNull()
-        if (n == null || n < 1) {
-            return retry(ctx, ConversationStep.ASK_PEOPLE_COUNT, "인원 수는 1 이상의 정수로 입력해주세요.")
-        }
-
-        val newCtx = ctx.copy(
-            peopleCount = n,
-            lastStep = ConversationStep.ASK_PEOPLE_COUNT,
-            failureCount = 0
-        )
-
-        return ConversationOutput(
-            message = """
-                환율 모드를 선택해주세요:
-                1) 자동(오늘 환율)
-                2) 수동 입력
-                3) KRW 생략
-            """.trimIndent(),
-            nextStep = ConversationStep.ASK_EXCHANGE_RATE_MODE,
-            context = newCtx
-        )
-    }
-
-    private fun handleMenuItems(input: String, ctx: ConversationContext): ConversationOutput {
+    override fun handleMenuItems(input: String, context: ConversationContext): ConversationOutput {
         if (input.startsWith("MENU_PAYLOAD:")) {
             val parsed = parseMenuPayload(input)
-                ?: return retry(ctx, ConversationStep.ASK_MENU_ITEMS, "메뉴 payload 파싱에 실패했습니다. 다시 시도해주세요.")
+                ?: return retry(context, ConversationStep.ASK_MENU_ITEMS, "메뉴 payload 파싱에 실패했습니다. 다시 시도해주세요.")
 
             val (items, participants, assignments) = parsed
-
-            val derivedCtx = applyMenuDerived(ctx, items, participants)
+            val derivedCtx = applyMenuDerived(context, items, participants)
 
             val newCtx = derivedCtx.copy(
                 menuItems = items,
@@ -247,21 +93,21 @@ class SimpleConversationFlow(
 
             return ConversationOutput(
                 message = """
-            메뉴별 입력이 완료되었습니다.
-            환율 모드를 선택해주세요:
-            1) 자동(오늘 환율)
-            2) 수동 입력
-            3) KRW 생략
-        """.trimIndent(),
+                    메뉴별 입력이 완료되었습니다.
+                    환율 모드를 선택해주세요:
+                    1) 자동(오늘 환율)
+                    2) 수동 입력
+                    3) KRW 생략
+                """.trimIndent(),
                 nextStep = ConversationStep.ASK_EXCHANGE_RATE_MODE,
                 context = newCtx
             )
         }
 
         val items = parseMenuItems(input)
-            ?: return retry(ctx, ConversationStep.ASK_MENU_ITEMS, "메뉴 형식이 올바르지 않습니다. 예시 형태로 입력해주세요.")
+            ?: return retry(context, ConversationStep.ASK_MENU_ITEMS, "메뉴 형식이 올바르지 않습니다. 예시 형태로 입력해주세요.")
 
-        val newCtx = ctx.copy(
+        val newCtx = context.copy(
             menuItems = items,
             lastStep = ConversationStep.ASK_MENU_ITEMS,
             failureCount = 0
@@ -269,27 +115,27 @@ class SimpleConversationFlow(
 
         return ConversationOutput(
             message = """
-            참가자를 입력해주세요.
-            형식: "이름, 이름, 이름"
-            예) 민지, 철수, 영희
-        """.trimIndent(),
+                참가자를 입력해주세요.
+                형식: "이름, 이름, 이름"
+                예) 민지, 철수, 영희
+            """.trimIndent(),
             nextStep = ConversationStep.ASK_MENU_PARTICIPANTS,
             context = newCtx
         )
     }
 
-    private fun handleMenuParticipants(input: String, ctx: ConversationContext): ConversationOutput {
+    override fun handleMenuParticipants(input: String, context: ConversationContext): ConversationOutput {
         val participants = parseParticipants(input)
-            ?: return retry(ctx, ConversationStep.ASK_MENU_PARTICIPANTS, "참가자 이름을 쉼표로 구분해 입력해주세요.")
+            ?: return retry(context, ConversationStep.ASK_MENU_PARTICIPANTS, "참가자 이름을 쉼표로 구분해 입력해주세요.")
 
-        val newCtx = ctx.copy(
+        val newCtx = context.copy(
             menuParticipants = participants,
             lastStep = ConversationStep.ASK_MENU_PARTICIPANTS,
             failureCount = 0
         )
 
         val menuGuide = participants.joinToString("\n") { "${it.id}) ${it.name}" }
-        val itemGuide = ctx.menuItems.joinToString("\n") { "${it.id}) ${it.name}(${it.priceCad})" }
+        val itemGuide = context.menuItems.joinToString("\n") { "${it.id}) ${it.name}(${it.priceCad})" }
 
         return ConversationOutput(
             message = """
@@ -309,14 +155,13 @@ class SimpleConversationFlow(
         )
     }
 
-    private fun handleMenuAssignments(input: String, ctx: ConversationContext): ConversationOutput {
+    override fun handleMenuAssignments(input: String, context: ConversationContext): ConversationOutput {
         if (input.startsWith("MENU_PAYLOAD:")) {
             val parsed = parseMenuPayload(input)
-                ?: return retry(ctx, ConversationStep.ASK_MENU_ITEMS, "메뉴 payload 파싱에 실패했습니다. 다시 시도해주세요.")
+                ?: return retry(context, ConversationStep.ASK_MENU_ITEMS, "메뉴 payload 파싱에 실패했습니다. 다시 시도해주세요.")
 
             val (items, participants, assignments) = parsed
-
-            val derivedCtx = applyMenuDerived(ctx, items, participants)
+            val derivedCtx = applyMenuDerived(context, items, participants)
 
             val newCtx = derivedCtx.copy(
                 menuItems = items,
@@ -328,21 +173,21 @@ class SimpleConversationFlow(
 
             return ConversationOutput(
                 message = """
-            메뉴별 입력이 완료되었습니다.
-            환율 모드를 선택해주세요:
-            1) 자동(오늘 환율)
-            2) 수동 입력
-            3) KRW 생략
-        """.trimIndent(),
+                    메뉴별 입력이 완료되었습니다.
+                    환율 모드를 선택해주세요:
+                    1) 자동(오늘 환율)
+                    2) 수동 입력
+                    3) KRW 생략
+                """.trimIndent(),
                 nextStep = ConversationStep.ASK_EXCHANGE_RATE_MODE,
                 context = newCtx
             )
         }
 
-        val assignments = parseAssignments(input, ctx)
-            ?: return retry(ctx, ConversationStep.ASK_MENU_ASSIGNMENTS, "지정 형식이 올바르지 않습니다. 예시대로 입력해주세요.")
+        val assignments = parseAssignments(input, context)
+            ?: return retry(context, ConversationStep.ASK_MENU_ASSIGNMENTS, "지정 형식이 올바르지 않습니다. 예시대로 입력해주세요.")
 
-        val derivedCtx = applyMenuDerived(ctx, ctx.menuItems, ctx.menuParticipants)
+        val derivedCtx = applyMenuDerived(context, context.menuItems, context.menuParticipants)
 
         val newCtx = derivedCtx.copy(
             menuAssignments = assignments,
@@ -351,166 +196,80 @@ class SimpleConversationFlow(
         )
 
         return ConversationOutput(
-            message = """
-        환율 모드를 선택해주세요:
-        1) 자동(오늘 환율)
-        2) 수동 입력
-        3) KRW 생략
-    """.trimIndent(),
+            message = exchangeModePromptMessage(),
             nextStep = ConversationStep.ASK_EXCHANGE_RATE_MODE,
             context = newCtx
         )
     }
 
-    private fun handleExchangeMode(input: String, ctx: ConversationContext): ConversationOutput {
-        val mode = input.trim().lowercase()
+    override fun showResult(context: ConversationContext): ConversationOutput {
+        return when (context.splitMode) {
+            SplitMode.N_DIVIDE -> showEvenResult(context)
 
-        return when (mode) {
-            "1", "auto", "자동" -> {
-                val svc = exchangeService
-                    ?: return retry(ctx, ConversationStep.ASK_EXCHANGE_RATE_MODE,
-                        "자동 환율 기능이 아직 준비되지 않았습니다. 2(수동) 또는 3(생략)을 선택해주세요.")
+            SplitMode.MENU_BASED -> showMenuResult(context)
 
-                val rate = runCatching { svc.getCadToKrwRate().rate }.getOrNull()
-                    ?: return retry(ctx, ConversationStep.ASK_EXCHANGE_RATE_MODE,
-                        "자동 환율 조회에 실패했습니다. 2(수동) 또는 3(생략)을 선택해주세요.")
-
-                val newCtx = ctx.copy(
-                    wantKrw = true,
-                    manualRate = rate,
-                    lastStep = ConversationStep.ASK_EXCHANGE_RATE_MODE,
-                    failureCount = 0
-                )
-
-                showResult(newCtx)
-            }
-
-            "2", "manual", "수동" -> {
-                ConversationOutput(
-                    message = "환율 값을 입력해주세요. (예: 980.5)",
-                    nextStep = ConversationStep.ASK_EXCHANGE_RATE_VALUE,
-                    context = ctx.copy(
-                        wantKrw = true,
-                        lastStep = ConversationStep.ASK_EXCHANGE_RATE_MODE,
-                        failureCount = 0
-                    )
-                )
-            }
-
-            "3", "none", "생략", "krw 생략" -> {
-                val newCtx = ctx.copy(
-                    wantKrw = false,
-                    manualRate = null,
-                    lastStep = ConversationStep.ASK_EXCHANGE_RATE_MODE,
-                    failureCount = 0
-                )
-
-                showResult(newCtx)
-            }
-
-            else -> retry(ctx, ConversationStep.ASK_EXCHANGE_RATE_MODE, "1(자동)/2(수동)/3(생략) 중 선택해주세요.")
+            null -> retry(context, ConversationStep.ASK_SPLIT_MODE, splitModeGuideMessage())
         }
     }
 
-    private fun handleExchangeValue(input: String, ctx: ConversationContext): ConversationOutput {
-        val rate = parsePositiveDecimal(input)
-            ?: return retry(ctx, ConversationStep.ASK_EXCHANGE_RATE_VALUE, "환율은 0보다 큰 숫자로 입력해주세요.")
+    private fun showMenuResult(ctx: ConversationContext): ConversationOutput {
+        val items = ctx.menuItems
+        val persons = ctx.menuParticipants
+        val assigns = ctx.menuAssignments
 
-        val newCtx = ctx.copy(
-            manualRate = rate,
-            wantKrw = true,
-            lastStep = ConversationStep.ASK_EXCHANGE_RATE_VALUE,
-            failureCount = 0
-        )
+        if (items.isEmpty() || persons.isEmpty() || assigns.isEmpty()) {
+            return retry(ctx, ConversationStep.ASK_MENU_ITEMS, "메뉴 입력이 부족합니다. 메뉴부터 다시 입력해주세요.")
+        }
 
-        return ConversationOutput(
-            message = "입력한 환율 $rate KRW/CAD 를 적용해 계산합니다.",
-            nextStep = ConversationStep.SHOW_RESULT,
-            context = newCtx
-        )
-    }
+        val itemsById = items.associate { it.id to
+                MenuItem(
+                    id = it.id,
+                    name = it.name,
+                    price = Money.of(it.priceCad, Currency.CAD)
+                )
+        }
 
-    private fun showResult(ctx: ConversationContext): ConversationOutput {
-        val base = ctx.baseAmount ?: return retry(ctx, ConversationStep.ASK_TOTAL_AMOUNT, "총 금액부터 다시 입력해주세요.")
-        val tax = ctx.taxAmount ?: Money.zero(base.currency)
+        val personsById = persons.associate { it.id to Participant(it.id, it.name) }
+
+        val assignmentList = assigns.map { (menuId, pids) ->
+            val menu = itemsById[menuId]
+                ?: throw IllegalArgumentException("unknown menuId: $menuId")
+            val ps = pids.map { pid ->
+                personsById[pid] ?: throw IllegalArgumentException("unknown participantId: $pid")
+            }
+            MenuAssignment(menu, ps)
+        }
+
+        val base = ctx.baseAmount ?: run {
+            val sum = items.fold(BigDecimal.ZERO) { acc, it -> acc + it.priceCad }
+            Money.of(sum, Currency.CAD)
+        }
+        val tax = ctx.taxAmount ?: Money.zero(Currency.CAD)
 
         val tip = when (ctx.tipMode) {
             TipMode.PERCENT -> ctx.tipPercent?.let { Tip(TipMode.PERCENT, percent = it, absolute = null) }
             TipMode.ABSOLUTE -> ctx.tipAbsolute?.let { Tip(TipMode.ABSOLUTE, percent = null, absolute = it) }
-            else -> null
+            else -> Tip(TipMode.NONE)
         }
 
         val receipt = Receipt(baseAmount = base, tax = Tax(tax), tip = tip)
 
-        val resultMessage = when (ctx.splitMode) {
-            SplitMode.N_DIVIDE -> {
-                val people = ctx.peopleCount ?: 1
-                val r = SplitCalculator.splitEvenly(receipt, people)
+        val r = SplitCalculator.splitByMenu(receipt, assignmentList)
 
-                val totalCad = formatMoney(r.total)
-                val perCad = formatMoney(r.perPerson)
+        val lines = r.shares.map { share ->
+            val cad = formatMoney(share.total)
+            val krw = if (ctx.wantKrw && ctx.manualRate != null) {
+                val v = share.total.amount.multiply(ctx.manualRate)
+                    .setScale(0, RoundingMode.HALF_UP)
+                " (${v.toPlainString()} KRW)"
+            } else ""
+            "- ${share.participant.displayName}: $cad CAD$krw"
+        }
 
-                val perKrw = if (ctx.wantKrw && ctx.manualRate != null) {
-                    val krw = r.perPerson.amount.multiply(ctx.manualRate)
-                        .setScale(0, RoundingMode.HALF_UP)
-                    "${krw.toPlainString()} KRW"
-                } else null
-
-                buildString {
-                    appendLine("✅ 총액: $totalCad CAD")
-                    appendLine("✅ 1인당: $perCad CAD")
-                    if (perKrw != null) appendLine("✅ 1인당(KRW): $perKrw")
-                }
-            }
-
-            SplitMode.MENU_BASED -> {
-                val items = ctx.menuItems
-                val persons = ctx.menuParticipants
-                val assigns = ctx.menuAssignments
-
-                if (items.isEmpty() || persons.isEmpty() || assigns.isEmpty()) {
-                    return retry(ctx, ConversationStep.ASK_MENU_ITEMS, "메뉴 입력이 부족합니다. 메뉴부터 다시 입력해주세요.")
-                }
-
-                val itemsById = items.associate { it.id to
-                        MenuItem(
-                            id = it.id,
-                            name = it.name,
-                            price = Money.of(it.priceCad, Currency.CAD)
-                        )
-                }
-
-                val personsById = persons.associate { it.id to Participant(it.id, it.name) }
-
-                val assignmentList = assigns.map { (menuId, pids) ->
-                    val menu = itemsById[menuId]
-                        ?: throw IllegalArgumentException("unknown menuId: $menuId")
-                    val ps = pids.map { pid ->
-                        personsById[pid] ?: throw IllegalArgumentException("unknown participantId: $pid")
-                    }
-                    MenuAssignment(menu, ps)
-                }
-
-                val r = SplitCalculator.splitByMenu(receipt, assignmentList)
-
-                val lines = r.shares.map { share ->
-                    val cad = formatMoney(share.total)
-                    val krw = if (ctx.wantKrw && ctx.manualRate != null) {
-                        val v = share.total.amount.multiply(ctx.manualRate)
-                            .setScale(0, RoundingMode.HALF_UP)
-                        " (${v.toPlainString()} KRW)"
-                    } else ""
-                    "- ${share.participant.displayName}: $cad CAD$krw"
-                }
-
-                buildString {
-                    appendLine("✅ 총액: ${formatMoney(r.total)} CAD")
-                    appendLine("✅ 메뉴별 결과")
-                    lines.forEach { appendLine(it) }
-                }
-            }
-
-            else -> "분배 방식이 선택되지 않았습니다."
+        val resultMessage = buildString {
+            appendLine("✅ 총액: ${formatMoney(r.total)} CAD")
+            appendLine("✅ 메뉴별 결과")
+            lines.forEach { appendLine(it) }
         }
 
         return ConversationOutput(
@@ -525,69 +284,6 @@ class SimpleConversationFlow(
             context = ctx.copy(lastStep = ConversationStep.SHOW_RESULT),
             isFinished = false
         )
-    }
-
-    private fun handleRestart(input: String, ctx: ConversationContext): ConversationOutput {
-        return when (input.trim().lowercase()) {
-            "1", "y", "yes", "네", "응" -> start()
-            "2", "n", "no", "아니오", "아니" -> ConversationOutput(
-                message = "대화를 종료합니다. 이용해주셔서 감사합니다!",
-                nextStep = ConversationStep.RESTART_CONFIRM,
-                context = ctx,
-                isFinished = true
-            )
-            else -> retry(ctx, ConversationStep.RESTART_CONFIRM, "1(YES) 또는 2(NO)로 입력해주세요.")
-        }
-    }
-
-    private fun retry(ctx: ConversationContext, step: ConversationStep, msg: String): ConversationOutput {
-        val newCtx = ctx.copy(
-            failureCount = ctx.failureCount + 1,
-            lastStep = step
-        )
-        return ConversationOutput(
-            message = msg,
-            nextStep = step,
-            context = newCtx
-        )
-    }
-
-    private fun parsePositiveMoney(input: String): Money? {
-        val v = parsePositiveDecimal(input) ?: return null
-        return Money.of(v, Currency.CAD)
-    }
-
-    private fun parseTaxMoney(input: String): Money? {
-        val norm = input.trim().lowercase()
-        if (norm in listOf("없음", "none", "no", "0")) {
-            return Money.zero(Currency.CAD)
-        }
-        val v = parsePositiveDecimal(norm) ?: return null
-        return Money.of(v, Currency.CAD)
-    }
-
-    private fun parsePositiveDecimal(input: String): BigDecimal? {
-        val s = input.replace(",", "").trim()
-        val v = s.toBigDecimalOrNull() ?: return null
-        if (v < BigDecimal.ZERO) return null
-        return v
-    }
-
-    private fun parseTipMode(input: String): TipMode? {
-        return when (input.trim().lowercase()) {
-            "1", "percent", "퍼센트" -> TipMode.PERCENT
-            "2", "absolute", "금액" -> TipMode.ABSOLUTE
-            "3", "none", "없음" -> TipMode.NONE
-            else -> null
-        }
-    }
-
-    private fun parseSplitMode(input: String): SplitMode? {
-        return when (input.trim().lowercase()) {
-            "1", "n", "n_divide", "n분의1" -> SplitMode.N_DIVIDE
-            "2", "menu", "menu_based", "메뉴", "메뉴별" -> SplitMode.MENU_BASED
-            else -> null
-        }
     }
 
     private fun parseMenuItems(input: String): List<MenuItemInput>? {
@@ -619,7 +315,7 @@ class SimpleConversationFlow(
         if (names.isEmpty()) return null
 
         return names.mapIndexed { i, n ->
-            MenuParticipantInput(id = "p${i+1}", name = n)
+            MenuParticipantInput(id = "p${i + 1}", name = n)
         }
     }
 
@@ -667,7 +363,4 @@ class SimpleConversationFlow(
             peopleCount = people
         )
     }
-
-    private fun formatMoney(m: Money): String =
-        m.amount.setScale(2, RoundingMode.HALF_UP).toPlainString()
 }
