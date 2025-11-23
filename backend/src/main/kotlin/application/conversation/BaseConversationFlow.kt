@@ -1,11 +1,6 @@
 package application.conversation
 
-import domain.conversation.ConversationOutput
-import domain.conversation.ConversationStep
 import domain.fx.ExchangeService
-import domain.menu.MenuAssignment
-import domain.menu.MenuItem
-import domain.menu.Participant
 import domain.money.Currency
 import domain.money.Money
 import domain.receipt.Receipt
@@ -18,7 +13,8 @@ import java.math.BigDecimal
 import java.math.RoundingMode
 
 abstract class BaseConversationFlow(
-    private val exchangeService: ExchangeService? = null
+    private val exchangeService: ExchangeService? = null,
+    private val askRestartAfterResult: Boolean = false
 ) : ConversationFlow {
 
     override fun handle(
@@ -57,11 +53,21 @@ abstract class BaseConversationFlow(
         )
 
         return when (mode) {
-            SplitMode.N_DIVIDE -> ConversationOutput(
-                nextStep = ConversationStep.ASK_TOTAL_AMOUNT,
-                message = "총 결제 금액을 입력해주세요 (예: 27.40)",
-                context = newCtx
-            )
+            SplitMode.N_DIVIDE -> {
+                if (newCtx.baseAmount == null) {
+                    ConversationOutput(
+                        nextStep = ConversationStep.ASK_TOTAL_AMOUNT,
+                        message = "총 결제 금액을 입력해주세요 (예: 27.40)",
+                        context = newCtx
+                    )
+                } else {
+                    ConversationOutput(
+                        nextStep = ConversationStep.ASK_PEOPLE_COUNT,
+                        message = "몇 명이서 나누시나요?",
+                        context = newCtx
+                    )
+                }
+            }
 
             SplitMode.MENU_BASED -> unsupportedMenuStep(newCtx)
         }
