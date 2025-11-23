@@ -1,0 +1,2 @@
+exchange:
+  api-key: ${EXCHANGE_API_KEY:}
