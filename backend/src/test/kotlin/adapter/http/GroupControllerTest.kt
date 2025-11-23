@@ -1,7 +1,7 @@
 // src/test/kotlin/adapter/http/GroupControllerTest.kt
 package adapter.http
 
-import adapter.http.dto.GroupCreateRoomRequest
+import adapter.http.dto.GroupDto
 import adapter.http.dto.GroupJoinRoomRequest
 import adapter.http.dto.GroupMessageRequest
 import application.conversation.ConversationContext
@@ -40,7 +40,7 @@ class GroupControllerTest(
     @Test
     fun `POST 방 생성 - RoomState를 JSON으로 반환한다`() {
         // given
-        val req = GroupCreateRoomRequest(
+        val req = GroupDto(
             roomId = "room-1",
             memberId = "alice"
         )

@@ -33,14 +33,20 @@ data class MenuAssignmentDto(
 )
 
 @Serializable
-data class TipDto(
-    val mode: String,
-    val percent: Double? = null,
-    val absolute: String? = null
+data class MenuSplitResponseDto(
+    val currency: String,
+    val totalAmountCad: String,
+    val exchange: ExchangeOptionDto? = null,
+    val participants: List<ParticipantShareDto>
 )
 
 @Serializable
-data class ExchangeDto(
-    val mode: String,
-    val manualRate: String? = null
+data class ParticipantShareDto(
+    val id: String,
+    val name: String,
+    val subtotalCad: String,
+    val taxShareCad: String,
+    val tipShareCad: String,
+    val totalCad: String,
+    val totalKrw: String? = null
 )

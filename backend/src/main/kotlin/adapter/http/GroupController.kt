@@ -17,7 +17,7 @@ class GroupController(
 
     @PostMapping("/rooms")
     fun createRoom(
-        @RequestBody request: GroupCreateRoomRequest
+        @RequestBody request: GroupDto
     ): ResponseEntity<GroupRoomResponse> {
         val roomId = RoomId(request.roomId)
         val memberId = MemberId(request.memberId)

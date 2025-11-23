@@ -3,13 +3,11 @@ package com.splitmate.state
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import com.splitmate.api.ExchangeDto
 import com.splitmate.api.ExchangeOptionRequestDto
 import com.splitmate.api.MenuAssignmentDto
 import com.splitmate.api.MenuItemDto
 import com.splitmate.api.MenuParticipantDto
 import com.splitmate.api.MenuSplitRequestDto
-import com.splitmate.api.TipDto
 import com.splitmate.api.TipRequestDto
 import com.splitmate.api.callMenuSplit
 import kotlinx.coroutines.MainScope

@@ -1,6 +1,5 @@
 package adapter.http.dto
 
-// N분의 1 더치페이 계산 요청 DTO
 data class SplitEvenRequest(
     val currency: String = "CAD",
     val totalAmount: String,
@@ -10,7 +9,6 @@ data class SplitEvenRequest(
     val exchange: ExchangeOptionRequest
 )
 
-// N분의 1 더치페이 계산 응답 DTO
 data class SplitEvenResponse(
     val currency: String,
     val totalAmountCad: String,
