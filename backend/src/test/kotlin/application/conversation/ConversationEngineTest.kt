@@ -23,72 +23,41 @@ class ConversationEngineTest {
     fun `행복 경로 - 총액부터 1인당 금액 계산까지 흐름이 이어진다`() {
         val engine = ConsoleConversationFlow()
 
-        // start
-        val start = engine.start()
-        val ctx0 = start.context
+        var out = engine.start()
 
-        val step1 = engine.handle(
-            step = ConversationStep.ASK_TOTAL_AMOUNT,
-            input = "27.40",
-            context = ctx0
-        )
-        val ctx1 = step1.context
-        assertEquals(ConversationStep.ASK_TAX, step1.nextStep)
+        out = engine.handle(out.nextStep, "27.40", out.context) // 총액
+        assertEquals(ConversationStep.ASK_TAX, out.nextStep)
 
-        val step2 = engine.handle(
-            step = ConversationStep.ASK_TAX,
-            input = "2.60",
-            context = ctx1
-        )
-        val ctx2 = step2.context
-        assertEquals(ConversationStep.ASK_TIP_MODE, step2.nextStep)
+        out = engine.handle(out.nextStep, "2.60", out.context)  // 세금
+        assertEquals(ConversationStep.ASK_TIP_MODE, out.nextStep)
 
-        val step3 = engine.handle(
-            step = ConversationStep.ASK_TIP_MODE,
-            input = "1",
-            context = ctx2
-        )
-        val ctx3 = step3.context
-        assertEquals(ConversationStep.ASK_TIP_VALUE, step3.nextStep)
+        out = engine.handle(out.nextStep, "1", out.context)     // 팁 모드: 퍼센트
+        assertEquals(ConversationStep.ASK_TIP_VALUE, out.nextStep)
 
-        val step4 = engine.handle(
-            step = ConversationStep.ASK_TIP_VALUE,
-            input = "10",
-            context = ctx3
-        )
-        val ctx4 = step4.context
-        assertEquals(ConversationStep.ASK_SPLIT_MODE, step4.nextStep)
+        out = engine.handle(out.nextStep, "10", out.context)    // 팁 값: 10%
+        assertEquals(ConversationStep.ASK_PEOPLE_COUNT, out.nextStep)
 
-        val step5 = engine.handle(
-            step = ConversationStep.ASK_SPLIT_MODE,
-            input = "1",
-            context = ctx4
-        )
-        val ctx5 = step5.context
-        assertEquals(ConversationStep.ASK_PEOPLE_COUNT, step5.nextStep)
+        out = engine.handle(out.nextStep, "3", out.context)     // 인원: 3
+        assertEquals(ConversationStep.ASK_EXCHANGE_RATE_MODE, out.nextStep)
 
-        val step6 = engine.handle(
-            step = ConversationStep.ASK_PEOPLE_COUNT,
-            input = "3",
-            context = ctx5
-        )
-        val ctx6 = step6.context
-        // ✅ 여기서는 아직 환율 모드 선택 단계여야 한다
-        assertEquals(ConversationStep.ASK_EXCHANGE_RATE_MODE, step6.nextStep)
+        out = engine.handle(out.nextStep, "3", out.context)
 
-        // 환율은 신경 안 쓰고 CAD만 보기 → 3번 선택
-        val step7 = engine.handle(
-            step = step6.nextStep,
-            input = "3",
-            context = ctx6
-        )
+        assertEquals(ConversationStep.ASK_SPLIT_MODE, out.nextStep)
 
-        assertEquals(ConversationStep.SHOW_RESULT, step7.nextStep)
-        assertTrue(step7.isFinished)
+        out = engine.handle(out.nextStep, "1", out.context)
+        assertEquals(ConversationStep.ASK_PEOPLE_COUNT, out.nextStep)
 
-        val msg = step7.message
+        out = engine.handle(out.nextStep, "3", out.context)
+        assertEquals(ConversationStep.ASK_EXCHANGE_RATE_MODE, out.nextStep)
+
+        out = engine.handle(out.nextStep, "3", out.context)
+
+        assertEquals(ConversationStep.RESTART_CONFIRM, out.nextStep)
+        assertFalse(out.isFinished)
+
+        val msg = out.message
         assertTrue(msg.contains("1인당"))
-        assertTrue(msg.contains("11.00"))  // 33 / 3 = 11.00
+        assertTrue(msg.contains("11.00"))
     }
 
     @Test

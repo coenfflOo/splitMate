@@ -11,10 +11,10 @@ class ReceiptTest {
     @Test
     fun `총액과 세금과 퍼센트 팁을 모두 포함한 최종 금액을 계산한다`() {
         val base = Money.of("27.40", Currency.CAD)
-        val tax = Tax(Money.of("2.60", Currency.CAD)) // 총 30.00
+        val tax = Tax(Money.of("2.60", Currency.CAD))
         val tip = Tip(
             mode = TipMode.PERCENT,
-            percent = 10              // 10% of 30.00 => 3.00
+            percent = 10
         )
 
         val receipt = Receipt(baseAmount = base, tax = tax, tip = tip)
@@ -45,7 +45,7 @@ class ReceiptTest {
         val tax = Tax(Money.of("0.00", Currency.CAD))
         val tip = Tip(
             mode = TipMode.ABSOLUTE,
-            absolute = Money.of("5.00", Currency.CAD)   // +5.00
+            absolute = Money.of("5.00", Currency.CAD)
         )
 
         val receipt = Receipt(baseAmount = base, tax = tax, tip = tip)

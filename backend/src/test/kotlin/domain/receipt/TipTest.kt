@@ -12,7 +12,7 @@ class TipTest {
     @Test
     fun `퍼센트 팁은 기준 금액의 퍼센트를 계산한다`() {
         val base = Money.of("100.00", Currency.CAD)
-        val tip = Tip(TipMode.PERCENT, 15) // 15%
+        val tip = Tip(TipMode.PERCENT, 15)
 
         val tipAmount = tip.amountOn(base)
 
@@ -25,7 +25,7 @@ class TipTest {
         val base = Money.of("100.00", Currency.CAD)
         val tip = Tip(
             mode = TipMode.ABSOLUTE,
-            absolute = Money.of("5.25", Currency.CAD)   // +5.00
+            absolute = Money.of("5.25", Currency.CAD)
         )
         val tipAmount = tip.amountOn(base)
 

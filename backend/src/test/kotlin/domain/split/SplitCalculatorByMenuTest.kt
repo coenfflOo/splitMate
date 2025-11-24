@@ -11,7 +11,6 @@ import domain.receipt.Tip
 import domain.receipt.TipMode
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertSame
 
 class SplitCalculatorByMenuTest {
 
@@ -80,8 +79,6 @@ class SplitCalculatorByMenuTest {
         val bellaShare = result.shares.first { it.participant == bella }
         val aliceShare = result.shares.first { it.participant == alice }
 
-        // 비율: Bella 5/9, Alice 4/9
-        // 기대값은 반올림 정책에 따라 검증
         assertEquals(Money.of("6.05", Currency.CAD).toString(), bellaShare.total.toString())
         assertEquals(Money.of("4.84", Currency.CAD).toString(), aliceShare.total.toString())
     }

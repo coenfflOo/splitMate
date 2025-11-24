@@ -10,7 +10,7 @@ class MenuDomainTest {
 
     @Test
     fun `MenuItem 가격은 0 이상이어야 한다`() {
-        MenuItem.ofCad(id = "m1", name = "Burger", amount = "0.00") // ok
+        MenuItem.ofCad(id = "m1", name = "Burger", amount = "0.00")
         assertFailsWith<IllegalArgumentException> {
             MenuItem(id = "m2", name = "Bad", price = Money.of("-1.00", Currency.CAD))
         }

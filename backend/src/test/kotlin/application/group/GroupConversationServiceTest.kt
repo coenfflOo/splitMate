@@ -1,21 +1,20 @@
-// src/test/kotlin/application/group/GroupConversationServiceTest.kt
 package application.group
 
 import application.conversation.model.ConversationContext
-import application.conversation.flow.ConversationFlow
+import application.conversation.flow.GroupConversationFlow
 import application.conversation.model.ConversationOutput
 import application.conversation.model.ConversationStep
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 
-private class FakeConversationFlow : ConversationFlow {
+private class FakeConversationFlow : GroupConversationFlow() {
     var startCalled = 0
     var handleCalled = 0
 
     override fun start(): ConversationOutput {
         startCalled++
-        val ctx = ConversationContext() // 실제 타입대로 맞춰주세요
+        val ctx = ConversationContext()
         return ConversationOutput(
             nextStep = ConversationStep.ASK_TOTAL_AMOUNT,
             message = "총 결제 금액을 입력해주세요",
@@ -29,7 +28,6 @@ private class FakeConversationFlow : ConversationFlow {
         context: ConversationContext
     ): ConversationOutput {
         handleCalled++
-        // 아주 단순한 fake: 항상 같은 step으로 넘어간다고 가정
         return ConversationOutput(
             nextStep = step,
             message = "echo: $input",
@@ -37,6 +35,7 @@ private class FakeConversationFlow : ConversationFlow {
         )
     }
 }
+
 
 class GroupConversationServiceTest {
 
@@ -71,25 +70,19 @@ class GroupConversationServiceTest {
         val roomId = RoomId("room-1")
         val alice = MemberId("alice")
 
-        // 먼저 방 생성
         val created = service.createRoom(roomId, alice)
 
         val before = created.lastOutput
         val updated = service.handleMessage(roomId, alice, "27.40")
 
-        // handle가 1번 호출되었는지
         assertEquals(1, fakeFlow.handleCalled)
 
-        // lastOutput가 바뀌었는지
         assertEquals("echo: 27.40", updated.lastOutput.message)
 
-        // rooms 맵에도 반영되었는지
         val loaded = service.getRoom(roomId)
         assertEquals(updated, loaded)
 
-        // 멤버 구성은 그대로
         assertEquals(setOf(alice), updated.members)
-        // step은 FakeConversationFlow 구현대로 동일하게 유지 (혹은 상황에 맞게 비교)
         assertEquals(before.nextStep, updated.lastOutput.nextStep)
     }
 

@@ -44,7 +44,7 @@ class GroupWebSocketMessagingTest {
 
     @BeforeEach
     fun setUp() {
-        val mapper = jacksonObjectMapper() // Kotlin 모듈 등록된 ObjectMapper
+        val mapper = jacksonObjectMapper()
 
         stompClient = WebSocketStompClient(StandardWebSocketClient()).apply {
             messageConverter = MappingJackson2MessageConverter().apply {
@@ -54,16 +54,14 @@ class GroupWebSocketMessagingTest {
     }
     @Test
     fun `클라이언트가 room topic을 구독하고 메시지를 보내면 브로드캐스트를 수신한다`() {
-        // given
         val url = "ws://localhost:$port/ws"
         val roomId = RoomId("room-1")
         val memberId = MemberId("member-1")
 
-        // 1) WebSocket이 브로드캐스트할 때 사용할 가짜 RoomState 준비
         val fakeOutput = ConversationOutput(
             message = "ok!",
             nextStep = ConversationStep.ASK_TOTAL_AMOUNT,
-            context = ConversationContext() // 실제 타입에 맞춰서 or mock()
+            context = ConversationContext()
         )
         val fakeState = application.group.RoomState(
             id = roomId,
@@ -71,7 +69,6 @@ class GroupWebSocketMessagingTest {
             lastOutput = fakeOutput
         )
 
-        // 2) WebSocket 핸들러가 service.handleMessage() 호출했을 때 fakeState 반환하도록 stub
         given(
             groupConversationService.handleMessage(
                 roomId,
@@ -82,7 +79,6 @@ class GroupWebSocketMessagingTest {
 
         val blockingQueue = ArrayBlockingQueue<GroupRoomResponse>(1)
 
-        // 3) STOMP 연결
         val future = stompClient.connectAsync(
             url,
             object : StompSessionHandlerAdapter() {
@@ -105,7 +101,6 @@ class GroupWebSocketMessagingTest {
         val session = future.get(5, TimeUnit.SECONDS)
         assertTrue(session.isConnected)
 
-        // 4) /topic/group/{roomId} 구독
         session.subscribe("/topic/group/${roomId.value}", object : StompFrameHandler {
             override fun getPayloadType(headers: StompHeaders): Type =
                 GroupRoomResponse::class.java
@@ -115,17 +110,14 @@ class GroupWebSocketMessagingTest {
             }
         })
 
-        // 5) /app/group/{roomId}/messages 로 메시지 전송
         val request = GroupMessageRequest(
             memberId = memberId.value,
             input = "10000"
         )
         session.send("/app/group/${roomId.value}/messages", request)
 
-        // when
         val received = blockingQueue.poll(2, TimeUnit.SECONDS)
 
-        // then
         requireNotNull(received) { "브로드캐스트 메시지를 수신하지 못했습니다." }
 
         assertEquals(roomId.value, received.roomId)
@@ -137,12 +129,10 @@ class GroupWebSocketMessagingTest {
 
     @Test
     fun `없는 roomId로 메시지 전송하면 ROOM_NOT_FOUND 에러가 브로드캐스트된다`() {
-        // given
         val url = "ws://localhost:$port/ws"
         val roomId = RoomId("room-404")
         val memberId = MemberId("member-1")
 
-        // 서비스가 RoomNotFoundException 던지도록 스텁
         given(
             groupConversationService.handleMessage(
                 roomId,
@@ -153,7 +143,6 @@ class GroupWebSocketMessagingTest {
 
         val blockingQueue = ArrayBlockingQueue<adapter.http.dto.ErrorResponse>(1)
 
-        // STOMP 연결
         val session = stompClient.connectAsync(
             url,
             object : StompSessionHandlerAdapter() {
@@ -175,7 +164,6 @@ class GroupWebSocketMessagingTest {
 
         assertTrue(session.isConnected)
 
-        // 에러 토픽 구독: /topic/group/{roomId}.errors
         session.subscribe("/topic/group/${roomId.value}.errors", object : StompFrameHandler {
             override fun getPayloadType(headers: StompHeaders): Type =
                 adapter.http.dto.ErrorResponse::class.java
@@ -185,7 +173,6 @@ class GroupWebSocketMessagingTest {
             }
         })
 
-        // when: /app/group/{roomId}/messages 로 전송
         val request = GroupMessageRequest(
             memberId = memberId.value,
             input = "hi"
@@ -194,11 +181,9 @@ class GroupWebSocketMessagingTest {
 
         val error = blockingQueue.poll(2, TimeUnit.SECONDS)
 
-        // then
         requireNotNull(error) { "에러 브로드캐스트를 수신하지 못했습니다." }
 
         assertEquals("ROOM_NOT_FOUND", error.error.code)
-        // 메시지는 REST와 최대한 비슷하게
         println("WebSocket error message = ${error.error.message}")
 
         session.disconnect()
@@ -206,7 +191,6 @@ class GroupWebSocketMessagingTest {
 
     @Test
     fun `멤버가 방에 속해있지 않으면 INVALID_INPUT 에러가 브로드캐스트된다`() {
-        // given
         val url = "ws://localhost:$port/ws"
         val roomId = RoomId("room-1")
         val memberId = MemberId("intruder")
@@ -243,10 +227,8 @@ class GroupWebSocketMessagingTest {
         )
         session.send("/app/group/${roomId.value}/messages", request)
 
-        // when
         val error = blockingQueue.poll(2, TimeUnit.SECONDS)
 
-        // then
         requireNotNull(error) { "에러 브로드캐스트를 수신하지 못했습니다." }
 
         assertEquals("INVALID_INPUT", error.error.code)
@@ -257,7 +239,6 @@ class GroupWebSocketMessagingTest {
 
     @Test
     fun `대화 context가 없으면 CONTEXT_MISSING 에러가 브로드캐스트된다`() {
-        // given
         val url = "ws://localhost:$port/ws"
         val roomId = RoomId("room-1")
         val memberId = MemberId("member-1")
@@ -294,10 +275,8 @@ class GroupWebSocketMessagingTest {
         )
         session.send("/app/group/${roomId.value}/messages", request)
 
-        // when
         val error = blockingQueue.poll(2, TimeUnit.SECONDS)
 
-        // then
         requireNotNull(error) { "에러 브로드캐스트를 수신하지 못했습니다." }
 
         assertEquals("CONTEXT_MISSING", error.error.code)

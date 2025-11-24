@@ -1,4 +1,3 @@
-// src/test/kotlin/adapter/http/GroupControllerGetRoomTest.kt
 package adapter.http
 
 import application.group.GroupConversationService
@@ -55,7 +54,6 @@ class GroupControllerGetRoomTest(
 
         given(groupConversationService.getRoom(roomId)).willReturn(state)
 
-        // when & then
         mockMvc.get("/api/group/rooms/${roomId.value}") {
             accept = MediaType.APPLICATION_JSON
         }.andExpect {
@@ -70,11 +68,9 @@ class GroupControllerGetRoomTest(
 
     @Test
     fun `없는 방을 조회하면 404와 ROOM_NOT_FOUND 에러를 반환한다`() {
-        // given
         val roomId = RoomId("room-404")
         given(groupConversationService.getRoom(roomId)).willReturn(null)
 
-        // when & then
         mockMvc.get("/api/group/rooms/${roomId.value}") {
             accept = MediaType.APPLICATION_JSON
         }.andExpect {

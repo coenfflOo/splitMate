@@ -33,10 +33,6 @@ class SplitControllerEvenTest @Autowired constructor(
 
     @Test
     fun `N분의 1 계산 API - 퍼센트 팁, KRW 변환 없이 행복 경로`() {
-        // given
-        // 총액 27.40 + 세금 2.60 = 30.00
-        // 팁 10% (PERCENT) => 3.00
-        // 최종 33.00 → 3명 → 1인당 11.00
 
         val request = SplitEvenRequest(
             currency = "CAD",
@@ -56,7 +52,6 @@ class SplitControllerEvenTest @Autowired constructor(
 
         val json = objectMapper.writeValueAsString(request)
 
-        // when & then
         mockMvc.post("/api/split/even") {
             contentType = MediaType.APPLICATION_JSON
             content = json

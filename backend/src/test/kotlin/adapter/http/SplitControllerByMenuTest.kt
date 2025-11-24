@@ -30,30 +30,21 @@ class SplitControllerByMenuTest(
 
     @Test
     fun `메뉴별 계산 - 혼자 먹은 메뉴와 공유 메뉴 혼합 - 퍼센트 팁, 환율 없음`() {
-        // items: Pizza(18.00), Pasta(12.00) → base = 30.00
         val items = listOf(
             MenuItemRequest(id = "m1", name = "Pizza", price = "18.00"),
             MenuItemRequest(id = "m2", name = "Pasta", price = "12.00")
         )
 
-        // participants: A(Alice), B(Bob)
         val participants = listOf(
             ParticipantRequest(id = "A", name = "Alice"),
             ParticipantRequest(id = "B", name = "Bob")
         )
 
-        // assignments:
-        //  - Pizza: A, B (share → 각 9.00)
-        //  - Pasta: A만 (12.00)
         val assignments = listOf(
             MenuAssignmentRequest(menuId = "m1", participantIds = listOf("A", "B")),
             MenuAssignmentRequest(menuId = "m2", participantIds = listOf("A"))
         )
 
-        // tax = 3.00, tip = 10% (on base+tax=33.00 → tip 3.30)
-        // 총액 = 36.30
-        // A: subtotal 21.00, tax 2.10, tip 2.31 → total 25.41
-        // B: subtotal  9.00, tax 0.90, tip 0.99 → total 10.89
         val request = MenuSplitRequest(
             currency = "CAD",
             items = items,

@@ -14,12 +14,11 @@ class SplitCalculatorTest {
 
     @Test
     fun `N분의 1로 공평하게 나눈다`() {
-        // 총액: 27.40 + 2.60 = 30.00
         val base = Money.of("27.40", Currency.CAD)
         val tax = Tax(Money.of("2.60", Currency.CAD))
         val tip = Tip(
             mode = TipMode.PERCENT,
-            percent = 10              // 10% of 30.00 => 3.00
+            percent = 10
         )
         val receipt = Receipt(base, tax, tip)
 
@@ -79,7 +78,6 @@ class SplitCalculatorTest {
             peopleCount = 2
         )
 
-        // base + tax = 30.00, tip(10%) = 3.00 → total 33.00 / 2 = 16.50
         assertEquals(result.total,
             Money.of(BigDecimal("33.00"), Currency.CAD)
         )
@@ -107,7 +105,6 @@ class SplitCalculatorTest {
 
         val result = SplitCalculator.splitEvenly(receipt, 3)
 
-        // (10 + 0 + 1) / 3 = 3.666... → 3.67 (HALF_UP, scale 2)
         assertEquals(result.total,
             Money.of(BigDecimal("11.00"), Currency.CAD)
         )

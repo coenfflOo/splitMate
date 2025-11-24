@@ -38,7 +38,6 @@ class SplitByMenuRoundingTest {
         assertEquals(Money.of("3.33", Currency.CAD), sb.subtotal)
         assertEquals(Money.of("3.33", Currency.CAD), sc.subtotal)
 
-        // 소계 합이 base와 정확히 일치하지 않을 수 있음(9.99 vs 10.00)
         val sum = sa.subtotal.amount + sb.subtotal.amount + sc.subtotal.amount
         assertTrue(sum.toPlainString() == "9.99")
         assertEquals(Money.of("10.00", Currency.CAD), result.total) // 총계는 영수증 기준

@@ -16,8 +16,6 @@ class SplitByMenuMixedTest {
 
     @Test
     fun `혼자 먹은 메뉴와 공유 메뉴 혼합 - 세금과 팁 비례 분배`() {
-        // base 30.00 = (12.00 solo by A) + (18.00 shared A,B)
-        // tax 3.00, tip 10% of (30+3) = 3.30, total 36.30
         val base = Money.of("30.00", Currency.CAD)
         val tax = Tax(Money.of("3.00", Currency.CAD))
         val tip = Tip(TipMode.PERCENT, 10)
@@ -36,9 +34,6 @@ class SplitByMenuMixedTest {
 
         val result = SplitCalculator.splitByMenu(receipt, assignments)
 
-        // subtotals: A = 12 + 9 = 21, B = 9
-        // ratioA = 21/30 = 0.70 → tax 2.10, tip 2.31, total = 21 + 2.10 + 2.31 = 25.41
-        // ratioB = 9/30  = 0.30 → tax 0.90, tip 0.99, total = 9 + 0.90 + 0.99 = 10.89
         assertEquals(Money.of("36.30", Currency.CAD), result.total)
 
         val a = result.shares.first { it.participant.id == "A" }

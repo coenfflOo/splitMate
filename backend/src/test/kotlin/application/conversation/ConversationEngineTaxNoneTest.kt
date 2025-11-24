@@ -1,11 +1,13 @@
 package application.conversation
 
 import application.conversation.flow.ConsoleConversationFlow
+import application.conversation.model.ConversationStep
 import domain.fx.ExchangeRate
 import domain.fx.ExchangeRateProvider
 import domain.fx.ExchangeService
 import domain.money.Currency
 import kotlin.test.Test
+import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 private class FakeProvider1000TaxNone : ExchangeRateProvider {
@@ -14,7 +16,6 @@ private class FakeProvider1000TaxNone : ExchangeRateProvider {
     }
 }
 
-
 class ConversationEngineTaxNoneTest {
 
     @Test
@@ -22,16 +23,31 @@ class ConversationEngineTaxNoneTest {
         val engine = ConsoleConversationFlow(ExchangeService(FakeProvider1000TaxNone()))
         var out = engine.start()
 
-        // 총액 -> 세금(없음) -> 팁 없음 -> 분배 1/N -> 인원 1 -> 환율 없이 CAD만 보기
-        out = engine.handle(out.nextStep, "27.40", out.context)      // 총액
-        out = engine.handle(out.nextStep, "없음", out.context)        // 세금 없음
-        out = engine.handle(out.nextStep, "3", out.context)          // 팁 없음
-        out = engine.handle(out.nextStep, "1", out.context)          // 분배: 1/N
-        out = engine.handle(out.nextStep, "1", out.context)          // 인원: 1
-        out = engine.handle(out.nextStep, "3", out.context)          // 환율: CAD만 보기
+        out = engine.handle(out.nextStep, "27.40", out.context)
+        assertEquals(ConversationStep.ASK_TAX, out.nextStep)
+
+        out = engine.handle(out.nextStep, "없음", out.context)
+        assertEquals(ConversationStep.ASK_TIP_MODE, out.nextStep)
+
+        out = engine.handle(out.nextStep, "3", out.context)
+        assertEquals(ConversationStep.ASK_PEOPLE_COUNT, out.nextStep)
+
+        out = engine.handle(out.nextStep, "1", out.context)
+        assertEquals(ConversationStep.ASK_EXCHANGE_RATE_MODE, out.nextStep)
+
+        out = engine.handle(out.nextStep, "3", out.context)
+        assertEquals(ConversationStep.ASK_SPLIT_MODE, out.nextStep)
+
+        out = engine.handle(out.nextStep, "1", out.context)
+        assertEquals(ConversationStep.ASK_PEOPLE_COUNT, out.nextStep)
+
+        out = engine.handle(out.nextStep, "1", out.context)
+        assertEquals(ConversationStep.ASK_EXCHANGE_RATE_MODE, out.nextStep)
+
+        out = engine.handle(out.nextStep, "3", out.context)
+        assertEquals(ConversationStep.RESTART_CONFIRM, out.nextStep)
 
         val msg = out.message
-        // 세금 0, 팁 0 → 총액 = 27.40 CAD
         assertTrue(msg.contains("총 금액: 27.40 CAD"))
         assertTrue(msg.contains("1인당: 27.40 CAD"))
     }

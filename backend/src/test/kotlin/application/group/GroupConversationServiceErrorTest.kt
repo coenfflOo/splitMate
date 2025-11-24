@@ -1,7 +1,7 @@
 package application.group
 
 import application.conversation.model.ConversationContext
-import application.conversation.flow.ConversationFlow
+import application.conversation.flow.GroupConversationFlow
 import application.conversation.model.ConversationOutput
 import application.conversation.model.ConversationStep
 import kotlin.test.Test
@@ -10,7 +10,7 @@ import kotlin.test.assertFailsWith
 
 class GroupConversationServiceErrorTest {
 
-    private class StubConversationFlow : ConversationFlow {
+    private class StubConversationFlow : GroupConversationFlow() {
         override fun start(): ConversationOutput =
             ConversationOutput(
                 message = "총 결제 금액을 입력해주세요.",
@@ -29,6 +29,7 @@ class GroupConversationServiceErrorTest {
                 context = context
             )
     }
+
 
     private fun service(): GroupConversationService =
         GroupConversationService(StubConversationFlow())
@@ -63,11 +64,9 @@ class GroupConversationServiceErrorTest {
     fun `방에 속하지 않은 멤버가 handleMessage를 호출하면 예외가 발생한다`() {
         val svc = service()
 
-        // given: room-1 을 생성하고 member-1 을 참가자로 둔다
         val roomId = RoomId("room-1")
         svc.createRoom(roomId, MemberId("member-1"))
 
-        // when: member-2 가 메시지를 보내면
         val ex = assertFailsWith<IllegalArgumentException> {
             svc.handleMessage(
                 roomId = roomId,

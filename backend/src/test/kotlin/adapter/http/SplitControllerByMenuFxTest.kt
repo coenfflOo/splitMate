@@ -33,7 +33,6 @@ class SplitControllerByMenuFxTest(
 
     @Test
     fun `메뉴별 계산 - MANUAL 환율로 KRW까지 반환`() {
-        // base: 30.00 CAD (Pizza 18 + Pasta 12)
         val items = listOf(
             MenuItemRequest(id = "m1", name = "Pizza", price = "18.00"),
             MenuItemRequest(id = "m2", name = "Pasta", price = "12.00")
@@ -49,10 +48,6 @@ class SplitControllerByMenuFxTest(
             MenuAssignmentRequest(menuId = "m2", participantIds = listOf("A"))       // +12 → A subtotal=21, B subtotal=9
         )
 
-        // tax = 3.00, tip 10% (on base+tax=33.00) -> 3.30
-        // total = 36.30 CAD
-        // A total = 25.41, B total = 10.89
-        // rate = 1000 → A KRW = 25410.00, B KRW = 10890.00
         val request = MenuSplitRequest(
             currency = "CAD",
             items = items,
@@ -85,13 +80,11 @@ class SplitControllerByMenuFxTest(
                 jsonPath("$.exchange.rate") { value("1000") }
                 jsonPath("$.exchange.targetCurrency") { value("KRW") }
 
-                // A
                 jsonPath("$.participants[0].id") { value("A") }
                 jsonPath("$.participants[0].subtotalCad") { value("21.00") }
                 jsonPath("$.participants[0].totalCad") { value("25.41") }
                 jsonPath("$.participants[0].totalKrw") { value("25410.00") }
 
-                // B
                 jsonPath("$.participants[1].id") { value("B") }
                 jsonPath("$.participants[1].subtotalCad") { value("9.00") }
                 jsonPath("$.participants[1].totalCad") { value("10.89") }

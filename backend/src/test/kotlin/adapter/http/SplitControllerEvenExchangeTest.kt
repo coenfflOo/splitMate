@@ -31,9 +31,6 @@ class SplitControllerEvenExchangeTest(
 
     @Test
     fun `N분의 1 - MANUAL 환율로 KRW 변환 포함`() {
-        // 총액 27.40 + 세금 2.60 = 30.00
-        // 팁 10% => 3.00 → 총 33.00 → 3명 → 1인당 11.00 CAD
-        // manualRate = 1000 → 11,000.00 KRW
         val req = SplitEvenRequest(
             currency = "CAD",
             totalAmount = "27.40",

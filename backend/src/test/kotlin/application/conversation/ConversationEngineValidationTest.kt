@@ -29,7 +29,8 @@ class ConversationEngineValidationTest {
         out = engine.handle(out.nextStep, "10.00", out.context)
         out = engine.handle(out.nextStep, "0", out.context)
         out = engine.handle(out.nextStep, "3", out.context)
-        out = engine.handle(out.nextStep, "1", out.context)
+
+        assertEquals(ConversationStep.ASK_PEOPLE_COUNT, out.nextStep)
 
         out = engine.handle(out.nextStep, "0", out.context)
         assertEquals(ConversationStep.ASK_PEOPLE_COUNT, out.nextStep)
@@ -38,7 +39,6 @@ class ConversationEngineValidationTest {
         out = engine.handle(out.nextStep, "-1", out.context)
         assertEquals(ConversationStep.ASK_PEOPLE_COUNT, out.nextStep)
 
-        // 3번째 잘못된 인원 수 입력 → 이제 RESTART_CONFIRM 로 가야 함
         out = engine.handle(out.nextStep, "1.5", out.context)
         assertEquals(ConversationStep.RESTART_CONFIRM, out.nextStep)
         assertTrue(out.message.contains("처음부터 다시 시작하시겠습니까"))

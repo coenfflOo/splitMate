@@ -1,4 +1,3 @@
-// src/test/kotlin/application/conversation/TipModeStoreTest.kt
 package application.conversation
 
 import application.conversation.flow.ConsoleConversationFlow
@@ -19,21 +18,17 @@ class TipModeStoreTest {
         var out = engine.start()
         var ctx = out.context as ConversationContext
 
-        // 총액
         out = engine.handle(out.nextStep, "27.40", ctx)
         ctx = out.context as ConversationContext
 
-        // 세금
         out = engine.handle(out.nextStep, "2.60", ctx)
         ctx = out.context as ConversationContext
 
-        // 팁 모드 선택 - 퍼센트
         out = engine.handle(out.nextStep, "1", ctx)
         ctx = out.context as ConversationContext
 
         assertThat(ctx.tipMode).isEqualTo(TipMode.PERCENT)
 
-        // 팁 퍼센트 값 입력
         out = engine.handle(ConversationStep.ASK_TIP_VALUE, "15", ctx)
         ctx = out.context as ConversationContext
 
@@ -48,21 +43,17 @@ class TipModeStoreTest {
         var out = engine.start()
         var ctx = out.context as ConversationContext
 
-        // 총액
         out = engine.handle(out.nextStep, "27.40", ctx)
         ctx = out.context as ConversationContext
 
-        // 세금
         out = engine.handle(out.nextStep, "2.60", ctx)
         ctx = out.context as ConversationContext
 
-        // 팁 모드 선택 - 절대 금액
         out = engine.handle(out.nextStep, "2", ctx)
         ctx = out.context as ConversationContext
 
         assertThat(ctx.tipMode).isEqualTo(TipMode.ABSOLUTE)
 
-        // 팁 금액 입력
         out = engine.handle(ConversationStep.ASK_TIP_VALUE, "10.00", ctx)
         ctx = out.context as ConversationContext
 
@@ -85,11 +76,10 @@ class TipModeStoreTest {
         out = engine.handle(out.nextStep, "0", ctx)
         ctx = out.context as ConversationContext
 
-        // 팁 없음(3)
         out = engine.handle(out.nextStep, "3", ctx)
         ctx = out.context as ConversationContext
 
-        assertThat(out.nextStep).isEqualTo(ConversationStep.ASK_SPLIT_MODE)
+        assertThat(out.nextStep).isEqualTo(ConversationStep.ASK_PEOPLE_COUNT)
         assertThat(ctx.tipMode).isEqualTo(TipMode.NONE)
         assertThat(ctx.tipPercent).isEqualTo(0)
         assertThat(ctx.tipAbsolute).isNull()

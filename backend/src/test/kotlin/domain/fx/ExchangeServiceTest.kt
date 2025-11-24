@@ -27,7 +27,7 @@ class ExchangeServiceTest {
 
     @Test
     fun `CAD 금액을 KRW로 변환한다`() {
-        val cad = Money.of("10.50", Currency.CAD)   // 10.50 CAD
+        val cad = Money.of("10.50", Currency.CAD)
         val rate = provider.getRate(Currency.CAD, Currency.KRW)
 
         val krw = service.convert(cad, rate)

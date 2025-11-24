@@ -12,7 +12,6 @@ import org.junit.jupiter.api.Test
 import org.mockito.BDDMockito.given
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.http.MediaType
 import org.springframework.test.context.bean.override.mockito.MockitoBean
@@ -36,7 +35,6 @@ class GroupControllerErrorTest(
 
     @Test
     fun `존재하지 않는 방에 join 요청 시 400과 에러 JSON을 반환한다`() {
-        // given
         val roomId = RoomId("room-404")
         val memberId = MemberId("user-1")
 
@@ -48,7 +46,6 @@ class GroupControllerErrorTest(
         )
         val json = objectMapper.writeValueAsString(request)
 
-        // when & then
         mockMvc.post("/api/group/rooms/${roomId.value}/join") {
             contentType = MediaType.APPLICATION_JSON
             content = json
@@ -61,7 +58,6 @@ class GroupControllerErrorTest(
 
     @Test
     fun `방에 속하지 않은 멤버가 메시지를 보내면 400과 에러 JSON을 반환한다`() {
-        // given
         val roomId = RoomId("room-1")
         val intruder = MemberId("intruder")
 
@@ -81,7 +77,6 @@ class GroupControllerErrorTest(
         )
         val json = objectMapper.writeValueAsString(request)
 
-        // when & then
         mockMvc.post("/api/group/rooms/${roomId.value}/messages") {
             contentType = MediaType.APPLICATION_JSON
             content = json
@@ -103,14 +98,12 @@ class GroupControllerErrorTest(
 
     @Test
     fun `POST joinRoom - room not found returns 404`() {
-        // given
         val roomId = RoomId("no-such-room")
         val memberId = MemberId("member-1")
 
         given(groupConversationService.joinRoom(roomId, memberId))
             .willThrow(RoomNotFoundException(roomId))
 
-        // when & then
         mockMvc.post("/api/group/rooms/${roomId.value}/join") {
             contentType = MediaType.APPLICATION_JSON
             content = """
@@ -162,7 +155,6 @@ class GroupControllerErrorTest(
 
     @Test
     fun `POST messages - context missing returns 409`() {
-        // given
         val roomId = RoomId("r2")
         val memberId = MemberId("owner")
 
@@ -174,7 +166,6 @@ class GroupControllerErrorTest(
 
         val body = """{ "memberId": "owner", "input": "hello" }"""
 
-        // when & then
         mockMvc.post("/api/group/rooms/${roomId.value}/messages") {
             contentType = MediaType.APPLICATION_JSON
             content = body

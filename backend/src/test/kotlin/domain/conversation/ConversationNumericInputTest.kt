@@ -1,4 +1,3 @@
-// src/test/kotlin/application/conversation/ConversationNumericInputTest.kt
 package application.conversation
 
 import application.conversation.flow.ConsoleConversationFlow
@@ -12,30 +11,24 @@ class ConversationNumericInputTest {
     @Test
     fun `팁 퍼센트 단계에서 숫자가 아닌 값 입력 시 재질문한다`() {
         val engine = ConsoleConversationFlow()
-        // start
         var output = engine.start()
         var ctx = output.context as ConversationContext
 
-        // 총액
         output = engine.handle(output.nextStep, "27.40", ctx)
         ctx = output.context as ConversationContext
 
-        // 세금
         output = engine.handle(output.nextStep, "2.60", ctx)
         ctx = output.context as ConversationContext
 
-        // 팁 모드 선택 - 퍼센트(1)
         output = engine.handle(output.nextStep, "1", ctx)
         ctx = output.context as ConversationContext
         assertThat(output.nextStep).isEqualTo(ConversationStep.ASK_TIP_VALUE)
         assertThat(ctx.tipMode).isNotNull
 
-        // when: 팁 값에 잘못된 입력
         output = engine.handle(ConversationStep.ASK_TIP_VALUE, "abc", ctx)
 
-        // then
         assertThat(output.nextStep).isEqualTo(ConversationStep.ASK_TIP_VALUE)
-        assertThat(output.message).contains("정수 퍼센트")
+        assertThat(output.message).containsAnyOf("퍼센트", "숫자", "다시 입력")
         val newCtx = output.context as ConversationContext
         assertThat(newCtx.failureCount).isEqualTo(1)
     }

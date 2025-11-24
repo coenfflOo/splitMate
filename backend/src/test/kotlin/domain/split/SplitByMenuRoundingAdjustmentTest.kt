@@ -17,7 +17,6 @@ class SplitByMenuRoundingAdjustmentTest {
     fun `3명이 10달러를 나누면 둘은 3_33 한 명은 3_34로 보정되고 총합은 10_00이 된다`() {
         val currency = Currency.CAD
 
-        // 메뉴 1개: 10.00 CAD
         val menu = MenuItem.ofCad(
             id = "m1",
             name = "Shared Dish",
@@ -33,7 +32,6 @@ class SplitByMenuRoundingAdjustmentTest {
             participants = listOf(alice, bob, charlie)
         )
 
-        // base=10.00, tax=0, tip 없음
         val base = Money.of("10.00", currency)
         val tax = Tax(Money.zero(currency))
         val receipt = Receipt(
@@ -47,7 +45,6 @@ class SplitByMenuRoundingAdjustmentTest {
             assignments = listOf(assignment)
         )
 
-        // 총합 == 10.00
         val sumOfTotals = result.shares
             .map { it.total.amount }
             .fold(BigDecimal.ZERO, BigDecimal::add)
@@ -57,7 +54,6 @@ class SplitByMenuRoundingAdjustmentTest {
 
         val totals = result.shares.map { it.total.amount }
 
-        // 둘은 3.33, 한 명은 3.34
         assertEquals(2, totals.count { it == BigDecimal("3.33") })
         assertEquals(1, totals.count { it == BigDecimal("3.34") })
     }
