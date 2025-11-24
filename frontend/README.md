@@ -1,71 +1,85 @@
-# SplitMate Frontend (Kotlin + Compose Multiplatform)
+# 🧮 SplitMate Frontend (Kotlin + Compose Multiplatform)
 
 **SplitMate**는
 
-- 영수증 정보를 입력하고
-- N분의 1 / 메뉴별 계산을 수행하며
-- 실시간 그룹 모드(WebSocket 기반)로 함께 계산을 진행할 수 있는
+유학생·여행자·일상 사용자 누구나
 
-**Kotlin Full-Stack 프로젝트**입니다.
+- 영수증 입력 → 자동 금액 계산
+- N분의 1 / 메뉴별 계산
+- 실시간 그룹(WebSocket) 협업 계산
 
-이 프론트엔드는 **Compose Multiplatform(Compose for Web)** 기반의
+을 간편하고 직관적으로 사용할 수 있는 **Kotlin Full-Stack 프로젝트**입니다.
 
-SPA 웹 애플리케이션입니다.
+이 저장소는 **Compose Multiplatform Web 기반 프론트엔드(SPA)** 입니다.
 
 ---
 
 ## 💡 프로젝트 목표 (Frontend 관점)
 
-1. **사용자 친화적인 UI/UX**
-    - 콘솔/REST 기반 계산 흐름을 웹 UI에서 직관적으로 경험
-    - 잘못된 입력, 에러 메시지를 친절하게 안내
-2. **GROUP 모드 실시간 협업**
-    - WebSocket + STOMP로 여러 사용자가 동일 방에 참여
-    - 계산 단계, 메시지 흐름을 동일하게 공유
-3. **도메인 흐름 + 프론트의 명확한 분리**
-    - Frontend는 오직 API 결과와 WebSocket 이벤트만 사용
-    - 비즈니스 로직(금액 계산 등)은 모두 백엔드 책임
-4. **Kotlin Full-Stack 통일성**
-    - Kotlin/JS(Compose Web) + Kotlin/Spring Boot를 사용하여
+### 1. 사용자 친화적인 UI/UX
 
-      동일 언어 기반의 개발 경험을 제공
+- 콘솔 기반 흐름을 웹 UI에서 자연스럽게 경험
+- 잘못된 입력, 경고, 에러를 **토스트(Toast)** 형태로 깔끔하게 제공
 
+### 2. GROUP 모드 실시간 협업
+
+- WebSocket + STOMP 기반 메시지 브로드캐스트
+- 여러 사용자 동일한 계산 흐름 공유
+
+### 3. Front/Back 책임 명확 분리
+
+- Frontend는 입력/상태/UI만 담당
+- 금액 계산, 검증, 흐름 관리는 모두 **Backend** 책임
+
+### 4. Kotlin Full-Stack 일관성
+
+- Kotlin/JS + Kotlin/JVM 조합으로 전체 흐름 통일
 
 ---
 
 ## 🖥️ 기술 스택
 
-- 언어: **Kotlin/JS (IR Compiler)**
-- 빌드: **Gradle (Kotlin DSL)**
-- UI Framework: **Compose Multiplatform (Compose for Web)**
-- 상태관리: Compose State + ViewModel 패턴
-- 라우팅: Simple SPA Router (커스텀 구현 예정)
+- 언어: **Kotlin/JS (IR, Compose Web)**
+- UI: **Compose Multiplatform Web (JetBrains Compose HTML)**
+- WebSocket: **STOMP over SockJS**
+- 빌드: **Gradle Kotlin DSL**
+- 상태관리: **Compose State + ViewModel Pattern**
+- 라우팅: **Custom Simple Router**
 
 ---
 
 ## 📁 패키지 구조 (Frontend)
 
-```
-frontend/
- ├── build.gradle.kts          # 프론트엔드 루트(멀티 모듈 루트)
- └── composeApp/
-     ├── build.gradle.kts      # JS/Compose Web 모듈
-     └── src/
-         └── jsMain/
-             ├── kotlin/
-             │   └── com/
-             │       └── splitmate/
-             │           ├── App.kt          # 루트 컴포저블
-             │           ├── main.kt        # 엔트리 포인트
-             │           ├── model
-             │           ├── components/    # 공통 UI 컴포넌트
-             │           ├── screens/       # 화면(Home, SoloSplit, MenuSplit...)
-             │           ├── api/           # REST API 클라이언트
-             │           ├── websocket/     # WebSocket/STOMP 클라이언트
-             │           ├── state/         # ViewModel / 상태
-             │           └── util/          # 포맷/매핑 헬퍼
-             └── resources/
-                 └── index.html                 # SPA 엔트리 HTML
+```cpp
+frontend
+ ├── build.gradle.kts 
+ └── composeApp
+     ├── build.gradle.kts 
+     └── src
+         └── jsMain
+             ├── kotlin
+             │   └── com
+             │       └── splitmate
+             │           └── frontend
+             │               ├── App.kt         
+             │               ├── main.kt
+             │               ├── style
+             │               ├── ui
+             │               ├── screens
+             │               ├── api
+             │               │   ├── client
+             │               │   └── dto
+             │               ├── websocket
+             │               │   └── dto
+             │               └── state
+             │                   ├── model
+             │                   │   ├── menu
+             │                   │   └── solo
+             │                   ├── steps
+             │                   ├── uistate
+             │                   └── viewmodel
+             └── resources
+                 └── index.html          
 ```
 
 ---
