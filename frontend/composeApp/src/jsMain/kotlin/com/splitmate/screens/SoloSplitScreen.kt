@@ -143,9 +143,7 @@ private fun TaxStep(
             if (!uiState.canProceedFromTax) {
                 disabled()
             }
-            onClick {
-                val ok = viewModel.onTaxSubmit()
-            }
+            onClick {}
         }) {
             Text("다음 단계로 (팁 입력 예정)")
         }
@@ -469,7 +467,7 @@ private fun ResultPlaceholder(
         }
 
         else -> {
-            val result = uiState.result!!
+            val result = uiState.result
             Div({ classes(AppStyles.formColumn) }) {
                 P {
                     Text("총 금액 (CAD): ${result.totalCad}")

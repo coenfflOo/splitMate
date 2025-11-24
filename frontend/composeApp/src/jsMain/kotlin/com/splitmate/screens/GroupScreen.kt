@@ -5,12 +5,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import com.splitmate.state.model.solo.SoloExchangeMode
-import com.splitmate.state.model.solo.SoloTipMode
 import com.splitmate.styles.AppStyles
 import com.splitmate.state.steps.GroupStep
 import com.splitmate.state.viewmodel.GroupViewModel
-import com.splitmate.state.uistate.MenuSplitUiState
 import com.splitmate.state.viewmodel.MenuSplitViewModel
 import com.splitmate.state.steps.MenuStep
 import com.splitmate.ui.SelectableButton
@@ -140,7 +137,6 @@ fun GroupScreen(
                             text = "메뉴별 분배",
                             isSelected = selected == "MENU_BASED"
                         ) {
-                            selected = "MENU_BASED"
                             viewModel.onSplitModeSelected("MENU_BASED")
                         }
                     }
@@ -183,9 +179,7 @@ fun GroupScreen(
                         SelectableButton("금액", selectedTip=="ABSOLUTE") {
                             selectedTip="ABSOLUTE"; viewModel.sendMessage("ABSOLUTE")
                         }
-                        SelectableButton("없음", selectedTip=="NONE") {
-                            selectedTip="NONE"; viewModel.sendMessage("NONE")
-                        }
+                        SelectableButton("없음", selectedTip=="NONE") {}
                     }
                 }
 
@@ -300,60 +294,3 @@ private fun placeholderFor(step: GroupStep): String =
         GroupStep.MENU_ASSIGNMENTS -> "예: m1:p1,p2; m2:p2"
         else -> "입력해주세요"
     }
-
-
-private fun buildMenuPayload(state: MenuSplitUiState): String {
-    val itemsJson = state.menuItems.joinToString(prefix = "[", postfix = "]") {
-        val price = it.priceInput.replace(",", "")
-        """{"id":"${it.id}","name":"${it.name}","price":"$price"}"""
-    }
-
-    val participantsJson = state.participants.joinToString(prefix = "[", postfix = "]") {
-        """{"id":"${it.id}","name":"${it.name}"}"""
-    }
-
-    val assignmentsJson = state.assignments.entries.joinToString(prefix = "[", postfix = "]") { (menuId, pids) ->
-        val pidList = pids.joinToString(prefix = "[", postfix = "]") { """"$it"""" }
-        """{"menuId":"$menuId","participantIds":$pidList}"""
-    }
-
-    // tax normalize
-    val taxAmount = when (state.taxInput.trim().lowercase()) {
-        "없음", "none", "no" -> "0"
-        else -> state.taxInput.replace(",", "").trim()
-    }
-
-    // tip
-    val tipJson = when (state.tipMode ?: SoloTipMode.NONE) {
-        SoloTipMode.NONE -> """{"mode":"NONE"}"""
-        SoloTipMode.PERCENT -> {
-            val percent = state.tipValueInput.replace(",", "").toIntOrNull() ?: 0
-            """{"mode":"PERCENT","percent":$percent}"""
-        }
-        SoloTipMode.ABSOLUTE -> {
-            val abs = state.tipValueInput.replace(",", "").trim()
-            """{"mode":"ABSOLUTE","absolute":"$abs"}"""
-        }
-    }
-
-    // exchange
-    val exchangeJson = when (state.exchangeMode ?: SoloExchangeMode.NONE) {
-        SoloExchangeMode.NONE -> """{"mode":"NONE"}"""
-        SoloExchangeMode.AUTO -> """{"mode":"AUTO"}"""
-        SoloExchangeMode.MANUAL -> {
-            val rate = state.exchangeRateInput.replace(",", "").trim()
-            """{"mode":"MANUAL","manualRate":"$rate"}"""
-        }
-    }
-
-    return """
-        MENU_PAYLOAD_V2:{
-            "items":$itemsJson,
-            "participants":$participantsJson,
-            "assignments":$assignmentsJson,
-            "taxAmount":"$taxAmount",
-            "tip":$tipJson,
-            "exchange":$exchangeJson
-        }
-    """.trimIndent().replace("\n", "")
-}

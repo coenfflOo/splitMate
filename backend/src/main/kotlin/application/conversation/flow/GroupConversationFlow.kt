@@ -24,7 +24,7 @@ import java.math.RoundingMode
 
 @Component
 class GroupConversationFlow(
-    private val exchangeService: ExchangeService? = null
+    exchangeService: ExchangeService? = null
 ) : BaseConversationFlow(exchangeService) {
 
     override fun start(): ConversationOutput {

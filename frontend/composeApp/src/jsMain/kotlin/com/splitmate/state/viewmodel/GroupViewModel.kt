@@ -9,7 +9,6 @@ import com.splitmate.api.callCreateRoom
 import com.splitmate.api.callJoinRoom
 import com.splitmate.state.model.menu.MenuSplitResultUi
 import com.splitmate.state.steps.GroupStep
-import com.splitmate.state.steps.MenuStep
 import com.splitmate.state.uistate.GroupUiState
 import com.splitmate.websocket.GroupStompClient
 import com.splitmate.websocket.dto.WsErrorMessage
@@ -258,18 +257,6 @@ class GroupViewModel {
         )
     }
 
-    fun sendSystemInput(text: String) {
-        val roomId = uiState.joinedRoomId
-        val memberId = uiState.memberIdInput.trim()
-
-        if (text.isEmpty() || roomId.isNullOrEmpty() || memberId.isEmpty()) return
-
-        socketClient.sendGroupInput(
-            memberId = memberId,
-            input = text
-        )
-    }
-
     fun sendMenuResultAsChat(result: MenuSplitResultUi) {
         val memberId = uiState.memberIdInput.trim()
         if (memberId.isEmpty()) return
@@ -330,7 +317,6 @@ class GroupViewModel {
             isMenuFlowActive = false
         )
     }
-
 
     fun clearError() {
         uiState = uiState.copy(error = null)

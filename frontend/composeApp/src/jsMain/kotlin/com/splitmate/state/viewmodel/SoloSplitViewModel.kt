@@ -76,18 +76,6 @@ class SoloSplitViewModel {
         )
     }
 
-    fun onTaxSubmit(): Boolean {
-        val trimmed = uiState.taxInput.trim()
-        val error = validateTax(trimmed)
-
-        uiState = uiState.copy(taxError = error)
-
-        if (error != null) return false
-
-        uiState = uiState.copy(step = SoloStep.TIP_MODE)
-        return true
-    }
-
     private fun validateTax(input: String): String? {
         if (input.isBlank()) {
             return "세금이 없으면 '없음'을 선택하거나 0을 입력해주세요."

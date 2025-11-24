@@ -586,35 +586,4 @@ abstract class BaseConversationFlow(
             appendLine("3) KRW 변환 없이 CAD만 보기")
             append("번호를 선택해주세요: ")
         }
-
-    private fun restartBackMessage(step: ConversationStep): String {
-        return when (step) {
-            ConversationStep.ASK_TOTAL_AMOUNT ->
-                "그럼 다시 총 결제 금액부터 입력해볼게요.\n총 결제 금액을 입력해주세요 (예: 27.40)"
-            ConversationStep.ASK_TAX ->
-                "그럼 다시 세금 금액부터 입력해볼게요.\n세금 금액을 입력해주세요. (없으면 0 또는 '없음')"
-            ConversationStep.ASK_TIP_MODE ->
-                "그럼 팁 입력 방식부터 다시 선택해주세요.\n1) 퍼센트 2) 금액 3) 없음"
-            ConversationStep.ASK_TIP_VALUE ->
-                "그럼 팁 값을 다시 입력해주세요."
-            ConversationStep.ASK_SPLIT_MODE ->
-                splitModePromptMessage()
-            ConversationStep.ASK_PEOPLE_COUNT ->
-                "인원 수를 다시 입력해주세요. (예: 3)"
-            ConversationStep.ASK_EXCHANGE_RATE_MODE ->
-                exchangeModePromptMessage()
-            ConversationStep.ASK_EXCHANGE_RATE_VALUE ->
-                "환율을 숫자로 입력해주세요. 예) 1000"
-            ConversationStep.ASK_MENU_ITEMS ->
-                "메뉴를 다시 입력해주세요.\n예) 파스타 18.9; 피자 22; 콜라 3"
-            ConversationStep.ASK_MENU_PARTICIPANTS ->
-                "참가자 이름을 다시 입력해주세요.\n예) 민지, 철수, 영희"
-            ConversationStep.ASK_MENU_ASSIGNMENTS ->
-                "메뉴별로 누가 먹었는지 다시 지정해주세요.\n예) m1:p1,p2; m2:p2; m3:p1,p3"
-            ConversationStep.SHOW_RESULT ->
-                "이미 계산이 완료되었습니다."
-            ConversationStep.RESTART_CONFIRM ->
-                "처음부터 다시 시작하시겠습니까? (Y/N)"
-        }
-    }
 }
