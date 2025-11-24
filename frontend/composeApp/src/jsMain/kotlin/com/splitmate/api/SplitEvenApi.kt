@@ -1,5 +1,9 @@
 package com.splitmate.api
 
+import com.splitmate.api.client.BASE_URL
+import com.splitmate.api.client.httpClient
+import com.splitmate.api.dto.SplitEvenRequestDto
+import com.splitmate.api.dto.SplitEvenResponseDto
 import io.ktor.client.call.body
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
@@ -9,7 +13,7 @@ import io.ktor.http.contentType
 import io.ktor.http.isSuccess
 
 suspend fun callSplitEven(request: SplitEvenRequestDto): SplitEvenResponseDto {
-    val resp = httpClient.post("$BASE_URL/api/split/even") {
+    val resp = httpClient.post("${BASE_URL}/api/split/even") {
         contentType(ContentType.Application.Json)
         setBody(request)
     }

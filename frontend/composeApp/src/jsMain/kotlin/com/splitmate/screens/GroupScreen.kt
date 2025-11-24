@@ -1,13 +1,20 @@
 package com.splitmate.screens
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import com.splitmate.AppStyles
-import com.splitmate.state.GroupStep
-import com.splitmate.state.GroupViewModel
-import com.splitmate.state.MenuSplitUiState
-import com.splitmate.state.MenuSplitViewModel
-import com.splitmate.state.MenuStep
+import androidx.compose.runtime.setValue
+import com.splitmate.state.model.solo.SoloExchangeMode
+import com.splitmate.state.model.solo.SoloTipMode
+import com.splitmate.styles.AppStyles
+import com.splitmate.state.steps.GroupStep
+import com.splitmate.state.viewmodel.GroupViewModel
+import com.splitmate.state.uistate.MenuSplitUiState
+import com.splitmate.state.viewmodel.MenuSplitViewModel
+import com.splitmate.state.steps.MenuStep
+import com.splitmate.ui.SelectableButton
+import com.splitmate.ui.ToastError
 import org.jetbrains.compose.web.attributes.InputType
 import org.jetbrains.compose.web.css.marginTop
 import org.jetbrains.compose.web.css.px
@@ -21,6 +28,12 @@ fun GroupScreen(
     val state = viewModel.uiState
     val menuVm = remember { MenuSplitViewModel() }
     val menuState = menuVm.uiState
+    var selected by remember { mutableStateOf<String?>(null) }
+    var selectedTip by remember { mutableStateOf<String?>(null) }
+    ToastError(
+        message = state.error,
+        onDismiss = { viewModel.clearError() }
+    )
 
     Div({ classes(AppStyles.backButtonRow) }) {
         Button(attrs = {
@@ -65,10 +78,10 @@ fun GroupScreen(
             }
 
             if (state.error != null) {
-                P({ classes(AppStyles.errorText) }) { Text(state.error!!) }
+                P({ classes(AppStyles.errorText) }) { Text(state.error) }
             }
             if (state.info != null) {
-                P { Text(state.info!!) }
+                P { Text(state.info) }
             }
         }
     }
@@ -98,7 +111,14 @@ fun GroupScreen(
                 P { Text("아직 메시지가 없습니다. 아래 입력창에 값을 넣고 보내보세요.") }
             } else {
                 Ul {
-                    state.messages.forEach { msg -> Li { Text(msg) } }
+                    state.messages.forEach { msg ->
+                        Li {
+                            msg.split("\n").forEachIndexed { index, line ->
+                                if (index > 0) Br()
+                                Text(line)
+                            }
+                        }
+                    }
                 }
             }
 
@@ -108,14 +128,21 @@ fun GroupScreen(
                     P { Text(state.currentPrompt) }
 
                     Div({ classes(AppStyles.buttonRow) }) {
+                        SelectableButton(
+                            text = "N분의 1",
+                            isSelected = selected == "N_DIVIDE"
+                        ) {
+                            selected = "N_DIVIDE"
+                            viewModel.onSplitModeSelected("N_DIVIDE")
+                        }
 
-                        Button(attrs = {
-                            onClick { viewModel.onSplitModeSelected("N_DIVIDE") }
-                        }) { Text("N분의 1") }
-
-                        Button(attrs = {
-                            onClick { viewModel.onSplitModeSelected("MENU_BASED") }
-                        }) { Text("메뉴별 분배") }
+                        SelectableButton(
+                            text = "메뉴별 분배",
+                            isSelected = selected == "MENU_BASED"
+                        ) {
+                            selected = "MENU_BASED"
+                            viewModel.onSplitModeSelected("MENU_BASED")
+                        }
                     }
                 }
 
@@ -131,13 +158,14 @@ fun GroupScreen(
                     )
 
                     if (menuState.step == MenuStep.RESULT && menuState.result != null) {
-                        val payload = buildMenuPayload(menuState)
+                        val result = menuState.result
 
                         Div({ classes(AppStyles.buttonRow) }) {
                             Button(attrs = {
                                 onClick {
-                                    viewModel.sendSystemInput(payload)
-                                    menuVm.backToMenuStep()
+                                    viewModel.sendMenuResultAsChat(result)
+                                    viewModel.backToFirstStep()
+                                    menuVm.reset()
                                 }
                             }) {
                                 Text("이 결과를 서버에 전송")
@@ -149,18 +177,50 @@ fun GroupScreen(
                 GroupStep.TIP_MODE -> {
                     P { Text("팁 입력 방식을 선택해주세요.") }
                     Div({ classes(AppStyles.buttonRow) }) {
-                        Button(attrs = { onClick { viewModel.sendMessage("PERCENT") } }) { Text("퍼센트(%)") }
-                        Button(attrs = { onClick { viewModel.sendMessage("ABSOLUTE") } }) { Text("금액") }
-                        Button(attrs = { onClick { viewModel.sendMessage("NONE") } }) { Text("없음") }
+                        SelectableButton("퍼센트(%)", selectedTip=="PERCENT") {
+                            selectedTip="PERCENT"; viewModel.sendMessage("PERCENT")
+                        }
+                        SelectableButton("금액", selectedTip=="ABSOLUTE") {
+                            selectedTip="ABSOLUTE"; viewModel.sendMessage("ABSOLUTE")
+                        }
+                        SelectableButton("없음", selectedTip=="NONE") {
+                            selectedTip="NONE"; viewModel.sendMessage("NONE")
+                        }
                     }
                 }
 
                 GroupStep.EXCHANGE_MODE -> {
+                    var selectedMode by remember { mutableStateOf<String?>(null) }
+
                     P { Text("환율 모드를 선택해주세요.") }
+
                     Div({ classes(AppStyles.buttonRow) }) {
-                        Button(attrs = { onClick { viewModel.sendMessage("AUTO") } }) { Text("자동(오늘 환율)") }
-                        Button(attrs = { onClick { viewModel.sendMessage("MANUAL") } }) { Text("수동 입력") }
-                        Button(attrs = { onClick { viewModel.sendMessage("NONE") } }) { Text("KRW 생략") }
+                        SelectableButton(
+                            text = "자동(오늘 환율)",
+                            isSelected = selectedMode == "AUTO"
+                        ) { selectedMode = "AUTO" }
+
+                        SelectableButton(
+                            text = "수동 입력",
+                            isSelected = selectedMode == "MANUAL"
+                        ) { selectedMode = "MANUAL" }
+
+                        SelectableButton(
+                            text = "KRW 생략",
+                            isSelected = selectedMode == "NONE"
+                        ) { selectedMode = "NONE" }
+                    }
+
+                    Div({ classes(AppStyles.buttonRow) }) {
+                        Button(attrs = {
+                            if (selectedMode == null) attr("disabled", "true")
+                            onClick {
+                                selectedMode?.let { mode ->
+                                    viewModel.sendMessage(mode)   // ✅ "AUTO"/"MANUAL"/"NONE" 전송
+                                }
+                                selectedMode = null
+                            }
+                        }) { Text("확인") }
                     }
                 }
 
@@ -243,25 +303,57 @@ private fun placeholderFor(step: GroupStep): String =
 
 
 private fun buildMenuPayload(state: MenuSplitUiState): String {
-    val itemsJson = state.menuItems.joinToString(
-        prefix = "[", postfix = "]"
-    ) {
+    val itemsJson = state.menuItems.joinToString(prefix = "[", postfix = "]") {
         val price = it.priceInput.replace(",", "")
         """{"id":"${it.id}","name":"${it.name}","price":"$price"}"""
     }
 
-    val participantsJson = state.participants.joinToString(
-        prefix = "[", postfix = "]"
-    ) {
+    val participantsJson = state.participants.joinToString(prefix = "[", postfix = "]") {
         """{"id":"${it.id}","name":"${it.name}"}"""
     }
 
-    val assignmentsJson = state.assignments.entries.joinToString(
-        prefix = "[", postfix = "]"
-    ) { (menuId, pids) ->
+    val assignmentsJson = state.assignments.entries.joinToString(prefix = "[", postfix = "]") { (menuId, pids) ->
         val pidList = pids.joinToString(prefix = "[", postfix = "]") { """"$it"""" }
         """{"menuId":"$menuId","participantIds":$pidList}"""
     }
 
-    return """MENU_PAYLOAD:{"items":$itemsJson,"participants":$participantsJson,"assignments":$assignmentsJson}"""
+    // tax normalize
+    val taxAmount = when (state.taxInput.trim().lowercase()) {
+        "없음", "none", "no" -> "0"
+        else -> state.taxInput.replace(",", "").trim()
+    }
+
+    // tip
+    val tipJson = when (state.tipMode ?: SoloTipMode.NONE) {
+        SoloTipMode.NONE -> """{"mode":"NONE"}"""
+        SoloTipMode.PERCENT -> {
+            val percent = state.tipValueInput.replace(",", "").toIntOrNull() ?: 0
+            """{"mode":"PERCENT","percent":$percent}"""
+        }
+        SoloTipMode.ABSOLUTE -> {
+            val abs = state.tipValueInput.replace(",", "").trim()
+            """{"mode":"ABSOLUTE","absolute":"$abs"}"""
+        }
+    }
+
+    // exchange
+    val exchangeJson = when (state.exchangeMode ?: SoloExchangeMode.NONE) {
+        SoloExchangeMode.NONE -> """{"mode":"NONE"}"""
+        SoloExchangeMode.AUTO -> """{"mode":"AUTO"}"""
+        SoloExchangeMode.MANUAL -> {
+            val rate = state.exchangeRateInput.replace(",", "").trim()
+            """{"mode":"MANUAL","manualRate":"$rate"}"""
+        }
+    }
+
+    return """
+        MENU_PAYLOAD_V2:{
+            "items":$itemsJson,
+            "participants":$participantsJson,
+            "assignments":$assignmentsJson,
+            "taxAmount":"$taxAmount",
+            "tip":$tipJson,
+            "exchange":$exchangeJson
+        }
+    """.trimIndent().replace("\n", "")
 }

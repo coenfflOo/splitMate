@@ -1,17 +1,20 @@
 package com.splitmate.screens
 
 import androidx.compose.runtime.*
-import com.splitmate.AppStyles
-import com.splitmate.state.*
-import com.splitmate.state.SoloSplitUiState
-import com.splitmate.state.SoloSplitViewModel
-import com.splitmate.state.SoloStep
+import com.splitmate.styles.AppStyles
+import com.splitmate.state.uistate.SoloSplitUiState
+import com.splitmate.state.viewmodel.SoloSplitViewModel
+import com.splitmate.state.steps.SoloStep
 import org.jetbrains.compose.web.attributes.InputType
 import org.jetbrains.compose.web.attributes.disabled
 import org.jetbrains.compose.web.attributes.placeholder
 import org.jetbrains.compose.web.dom.*
 import org.jetbrains.compose.web.dom.Input
 import androidx.compose.runtime.LaunchedEffect
+import com.splitmate.state.model.solo.SoloExchangeMode
+import com.splitmate.state.model.solo.SoloTipMode
+import com.splitmate.ui.SelectableButton
+import com.splitmate.ui.ToastError
 
 
 @Composable
@@ -20,6 +23,11 @@ fun SoloSplitScreen(
 ) {
     val viewModel = remember { SoloSplitViewModel() }
     val uiState = viewModel.uiState
+
+    ToastError(
+        message = uiState.apiError,
+        onDismiss = { viewModel.clearApiError() }
+    )
 
     Div {
         Div({ classes(AppStyles.backButtonRow) }) {
@@ -137,9 +145,6 @@ private fun TaxStep(
             }
             onClick {
                 val ok = viewModel.onTaxSubmit()
-                if (ok) {
-                    // TODO: 다음 단계(팁 입력 화면)로 진행 예정
-                }
             }
         }) {
             Text("다음 단계로 (팁 입력 예정)")
@@ -161,17 +166,20 @@ private fun TipModeStep(
         P { Text("팁 입력 방식") }
 
         Div({ classes(AppStyles.buttonRow) }) {
-            Button(attrs = {
-                onClick { viewModel.onTipModeSelected(SoloTipMode.PERCENT) }
-            }) { Text("% 퍼센트") }
+            SelectableButton(
+                text = "% 퍼센트",
+                isSelected = uiState.tipMode == SoloTipMode.PERCENT
+            ) { viewModel.onTipModeSelected(SoloTipMode.PERCENT) }
 
-            Button(attrs = {
-                onClick { viewModel.onTipModeSelected(SoloTipMode.ABSOLUTE) }
-            }) { Text("$ 금액") }
+            SelectableButton(
+                text = "$ 금액",
+                isSelected = uiState.tipMode == SoloTipMode.ABSOLUTE
+            ) { viewModel.onTipModeSelected(SoloTipMode.ABSOLUTE) }
 
-            Button(attrs = {
-                onClick { viewModel.onTipModeSelected(SoloTipMode.NONE) }
-            }) { Text("팁 없음") }
+            SelectableButton(
+                text = "팁 없음",
+                isSelected = uiState.tipMode == SoloTipMode.NONE
+            ) { viewModel.onTipModeSelected(SoloTipMode.NONE) }
         }
 
         if (uiState.tipMode != null) {
@@ -367,23 +375,20 @@ private fun ExchangeRateModePlaceholder(
 
     Div({ classes(AppStyles.formColumn) }) {
 
-        Button(attrs = {
-            onClick { viewModel.onExchangeModeSelected(SoloExchangeMode.AUTO) }
-        }) {
-            Text("1) 오늘 환율 자동 조회 (CAD → KRW)")
-        }
+        SelectableButton(
+            "1) 오늘 환율 자동 조회",
+            isSelected = uiState.exchangeMode == SoloExchangeMode.AUTO
+        ) { viewModel.onExchangeModeSelected(SoloExchangeMode.AUTO) }
 
-        Button(attrs = {
-            onClick { viewModel.onExchangeModeSelected(SoloExchangeMode.MANUAL) }
-        }) {
-            Text("2) 환율 직접 입력")
-        }
+        SelectableButton(
+            "2) 환율 직접 입력",
+            isSelected = uiState.exchangeMode == SoloExchangeMode.MANUAL
+        ) { viewModel.onExchangeModeSelected(SoloExchangeMode.MANUAL) }
 
-        Button(attrs = {
-            onClick { viewModel.onExchangeModeSelected(SoloExchangeMode.NONE) }
-        }) {
-            Text("3) KRW 변환 없이 CAD만 보기")
-        }
+        SelectableButton(
+            "3) KRW 변환 없이 보기",
+            isSelected = uiState.exchangeMode == SoloExchangeMode.NONE
+        ) { viewModel.onExchangeModeSelected(SoloExchangeMode.NONE) }
 
         uiState.exchangeModeError?.let {
             P({ classes(AppStyles.errorText) }) { Text(it) }

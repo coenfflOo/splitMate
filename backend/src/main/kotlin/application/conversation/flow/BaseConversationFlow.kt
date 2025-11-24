@@ -181,64 +181,65 @@ abstract class BaseConversationFlow(
             )
 
             TipMode.NONE -> ConversationOutput(
-                message = splitModePromptMessage(),
-                nextStep = ConversationStep.ASK_SPLIT_MODE,
+                message = "인원 수를 입력해주세요. (예: 3)",
+                nextStep = ConversationStep.ASK_PEOPLE_COUNT,
                 context = newCtx.copy(tipPercent = 0)
             )
         }
     }
 
     private fun handleTipValue(input: String, context: ConversationContext): ConversationOutput {
-        return when (context.tipMode) {
+        val trimmed = input.trim().replace(",", "")
+
+        val newCtx = when (context.tipMode) {
             TipMode.PERCENT -> {
-                val p = input.toIntOrNull()
-                    ?: return retry(context, ConversationStep.ASK_TIP_VALUE, "정수 퍼센트로 입력해주세요. (예: 15)")
-                if (p !in 0..100) {
-                    return retry(context, ConversationStep.ASK_TIP_VALUE, "0~100 사이의 퍼센트를 입력해주세요.")
+                val percentBd = trimmed.toBigDecimalOrNull()
+                    ?: return retry(context, ConversationStep.ASK_TIP_VALUE,
+                        "퍼센트는 숫자로 입력해주세요. 예) 10 또는 10.5")
+
+                val percent = percentBd.setScale(0, RoundingMode.HALF_UP).toInt()
+                if (percent !in 0..100) {
+                    return retry(context, ConversationStep.ASK_TIP_VALUE,
+                        "퍼센트는 0~100 사이로 입력해주세요.")
                 }
 
-                ConversationOutput(
-                    message = splitModePromptMessage(),
-                    nextStep = ConversationStep.ASK_SPLIT_MODE,
-                    context = context.copy(
-                        tipPercent = p,
-                        tipAbsolute = null,
-                        failureCount = 0,
-                        lastStep = ConversationStep.ASK_TIP_VALUE
-                    )
+                context.copy(
+                    tipPercent = percent,
+                    lastStep = ConversationStep.ASK_TIP_VALUE,
+                    failureCount = 0
                 )
             }
 
             TipMode.ABSOLUTE -> {
-                val v = input.toBigDecimalOrNull()
-                    ?: return retry(context, ConversationStep.ASK_TIP_VALUE, "숫자 금액으로 입력해주세요. (예: 10.00)")
-                if (v <= BigDecimal.ZERO) {
-                    return retry(context, ConversationStep.ASK_TIP_VALUE, "0보다 큰 값을 입력해주세요.")
+                val value = trimmed.toBigDecimalOrNull()
+                    ?: return retry(context, ConversationStep.ASK_TIP_VALUE,
+                        "팁 금액은 숫자로 입력해주세요. 예) 10.00")
+
+                if (value < BigDecimal.ZERO) {
+                    return retry(context, ConversationStep.ASK_TIP_VALUE,
+                        "팁 금액은 0 이상이어야 합니다.")
                 }
 
-                ConversationOutput(
-                    message = splitModePromptMessage(),
-                    nextStep = ConversationStep.ASK_SPLIT_MODE,
-                    context = context.copy(
-                        tipAbsolute = Money.of(v, Currency.CAD),
-                        failureCount = 0,
-                        lastStep = ConversationStep.ASK_TIP_VALUE
-                    )
+                context.copy(
+                    tipAbsolute = Money.of(value, Currency.CAD),
+                    lastStep = ConversationStep.ASK_TIP_VALUE,
+                    failureCount = 0
                 )
             }
 
-            TipMode.NONE, null -> ConversationOutput(
-                message = splitModePromptMessage(),
-                nextStep = ConversationStep.ASK_SPLIT_MODE,
-                context = context.copy(
-                    tipMode = TipMode.NONE,
-                    tipPercent = 0,
-                    tipAbsolute = null,
-                    failureCount = 0,
-                    lastStep = ConversationStep.ASK_TIP_VALUE
-                )
+            TipMode.NONE -> context.copy(
+                lastStep = ConversationStep.ASK_TIP_VALUE,
+                failureCount = 0
             )
+
+            null -> return retry(context, ConversationStep.ASK_TIP_MODE, tipModeGuideMessage())
         }
+
+        return ConversationOutput(
+            message = "인원 수를 입력해주세요. (예: 3)",
+            nextStep = ConversationStep.ASK_PEOPLE_COUNT,
+            context = newCtx
+        )
     }
 
     private fun handlePeopleCount(input: String, context: ConversationContext): ConversationOutput {
@@ -263,34 +264,55 @@ abstract class BaseConversationFlow(
     }
 
     private fun handleExchangeMode(input: String, context: ConversationContext): ConversationOutput {
-        return when (input.trim()) {
-            "1" -> {
+        return when (input.trim().uppercase()) {
+            "1", "AUTO" -> {
                 val svc = exchangeService
                     ?: return ConversationOutput(
                         message = "자동 환율 조회를 사용할 수 없습니다(키 미설정). 환율을 직접 입력해주세요 (예: 1000).",
                         nextStep = ConversationStep.ASK_EXCHANGE_RATE_VALUE,
-                        context = context.copy(wantKrw = true, lastStep = ConversationStep.ASK_EXCHANGE_RATE_MODE)
+                        context = context.copy(
+                            wantKrw = true,
+                            lastStep = ConversationStep.ASK_EXCHANGE_RATE_MODE
+                        )
                     )
 
                 val rate = runCatching { svc.getCadToKrwRate().rate }.getOrNull()
                     ?: return ConversationOutput(
                         message = "환율 조회에 실패했습니다. 환율을 직접 입력해주세요 (예: 1000).",
                         nextStep = ConversationStep.ASK_EXCHANGE_RATE_VALUE,
-                        context = context.copy(wantKrw = true, lastStep = ConversationStep.ASK_EXCHANGE_RATE_MODE)
+                        context = context.copy(
+                            wantKrw = true,
+                            lastStep = ConversationStep.ASK_EXCHANGE_RATE_MODE
+                        )
                     )
 
-                showResult(context.copy(wantKrw = true, manualRate = rate, lastStep = ConversationStep.ASK_EXCHANGE_RATE_MODE))
+                showResult(
+                    context.copy(
+                        wantKrw = true,
+                        manualRate = rate,
+                        lastStep = ConversationStep.ASK_EXCHANGE_RATE_MODE
+                    )
+                )
             }
 
-            "2" -> ConversationOutput(
+            "2", "MANUAL" -> ConversationOutput(
                 message = "환율을 숫자로 입력해주세요. 예) 1 CAD = 1000 KRW → 1000 입력",
                 nextStep = ConversationStep.ASK_EXCHANGE_RATE_VALUE,
-                context = context.copy(wantKrw = true, lastStep = ConversationStep.ASK_EXCHANGE_RATE_MODE)
+                context = context.copy(
+                    wantKrw = true,
+                    lastStep = ConversationStep.ASK_EXCHANGE_RATE_MODE
+                )
             )
 
-            "3" -> showResult(context.copy(wantKrw = false, manualRate = null, lastStep = ConversationStep.ASK_EXCHANGE_RATE_MODE))
+            "3", "NONE" -> showResult(
+                context.copy(
+                    wantKrw = false,
+                    manualRate = null,
+                    lastStep = ConversationStep.ASK_EXCHANGE_RATE_MODE
+                )
+            )
 
-            else -> retry(context, ConversationStep.ASK_EXCHANGE_RATE_MODE, "1, 2, 3 중에서 선택해주세요.")
+            else -> retry(context, ConversationStep.ASK_EXCHANGE_RATE_MODE, "1, 2, 3(AUTO/MANUAL/NONE) 중에서 선택해주세요.")
         }
     }
 
@@ -306,19 +328,77 @@ abstract class BaseConversationFlow(
     }
 
     private fun handleRestartConfirm(input: String, context: ConversationContext): ConversationOutput {
-        return when (input.trim().lowercase()) {
-            "y", "yes", "예", "네", "1" -> start()
+        val normalized = input.trim().lowercase()
+
+        return when (normalized) {
+            "y", "yes", "예", "네", "1" -> {
+                // ✅ 다시 계산하기: splitMode 유지한 채 첫 단계로 리셋
+                when (context.splitMode) {
+                    SplitMode.N_DIVIDE -> {
+                        val resetCtx = context.copy(
+                            baseAmount = null,
+                            taxAmount = null,
+                            tipMode = null,
+                            tipPercent = null,
+                            tipAbsolute = null,
+                            peopleCount = null,
+                            wantKrw = false,
+                            manualRate = null,
+                            failureCount = 0,
+                            lastStep = ConversationStep.ASK_TOTAL_AMOUNT
+                        )
+
+                        ConversationOutput(
+                            nextStep = ConversationStep.ASK_TOTAL_AMOUNT,
+                            message = "총 결제 금액을 입력해주세요. (예: 27.40)",
+                            context = resetCtx
+                        )
+                    }
+
+                    SplitMode.MENU_BASED -> {
+                        val resetCtx = context.copy(
+                            baseAmount = null,
+                            taxAmount = null,
+                            tipMode = null,
+                            tipPercent = null,
+                            tipAbsolute = null,
+                            peopleCount = null,
+                            wantKrw = false,
+                            manualRate = null,
+                            menuItems = emptyList(),
+                            menuParticipants = emptyList(),
+                            menuAssignments = emptyMap(),
+                            failureCount = 0,
+                            lastStep = ConversationStep.ASK_MENU_ITEMS
+                        )
+
+                        ConversationOutput(
+                            nextStep = ConversationStep.ASK_MENU_ITEMS,
+                            message = """
+                            메뉴를 입력해주세요.
+                            형식: "이름 가격; 이름 가격; ..."
+                            예) 파스타 18.9; 피자 22; 콜라 3
+                        """.trimIndent(),
+                            context = resetCtx
+                        )
+                    }
+
+                    null -> start()
+                }
+            }
+
             "n", "no", "아니오", "2" -> {
-                val step = context.lastStep ?: ConversationStep.ASK_TOTAL_AMOUNT
+                // ✅ 종료: 분배 방식 선택으로 돌아가기
                 ConversationOutput(
-                    nextStep = step,
-                    message = restartBackMessage(step),
-                    context = context.copy(failureCount = 0)
+                    nextStep = ConversationStep.ASK_SPLIT_MODE,
+                    message = splitModePromptMessage(),
+                    context = ConversationContext()
                 )
             }
+
             else -> ConversationOutput(
                 nextStep = ConversationStep.RESTART_CONFIRM,
-                message = "Y 또는 N으로 입력해주세요. 처음부터 다시 시작하시겠습니까? (Y/N)",
+                message = "1(YES) 또는 2(NO)로 입력해주세요.",
                 context = context
             )
         }
@@ -392,9 +472,9 @@ abstract class BaseConversationFlow(
 
     protected fun parseTipMode(input: String): TipMode? {
         return when (input.trim().lowercase()) {
-            "1", "percent", "퍼센트" -> TipMode.PERCENT
-            "2", "absolute", "금액" -> TipMode.ABSOLUTE
-            "3", "none", "없음" -> TipMode.NONE
+            "1", "percent", "퍼센트", "PERCENT", "PERCENTAGE" -> TipMode.PERCENT
+            "2", "absolute", "금액", "ABSOLUTE", "AMOUNT" -> TipMode.ABSOLUTE
+            "3", "none", "없음", "NONE", "NO" -> TipMode.NONE
             else -> null
         }
     }
@@ -444,11 +524,19 @@ abstract class BaseConversationFlow(
             sb.appendLine("1인당(원화): ${formatMoney(krw)}")
         }
 
+        val msg = """
+        ${sb.toString().trimEnd()}
+        
+        다시 시작할까요?
+        1) YES
+        2) NO
+    """.trimIndent()
+
         return ConversationOutput(
-            message = sb.toString().trimEnd(),
-            nextStep = ConversationStep.SHOW_RESULT,
-            context = context,
-            isFinished = true
+            message = msg,
+            nextStep = ConversationStep.RESTART_CONFIRM,
+            context = context.copy(lastStep = ConversationStep.SHOW_RESULT),
+            isFinished = false
         )
     }
 
@@ -486,6 +574,9 @@ abstract class BaseConversationFlow(
 
     protected open fun splitModeGuideMessage(): String =
         "현재는 1) N분의 1 방식만 지원합니다."
+
+    protected open fun tipModeGuideMessage(): String =
+        "Tip을 입력해주세요"
 
     protected open fun exchangeModePromptMessage(): String =
         buildString {

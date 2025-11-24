@@ -1,6 +1,7 @@
 package com.splitmate.websocket
 
-import kotlinx.coroutines.MainScope
+import com.splitmate.websocket.dto.WsErrorMessage
+import com.splitmate.websocket.dto.WsGroupMessage
 import org.w3c.dom.MessageEvent
 import org.w3c.dom.WebSocket
 import org.w3c.dom.events.Event

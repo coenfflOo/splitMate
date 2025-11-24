@@ -31,9 +31,6 @@ class GroupConversationFlow(
         return ConversationOutput(
             message = """
                 GROUP 대화를 시작합니다!
-                분배 방식을 선택해주세요:
-                1) N분의1
-                2) 메뉴별 분배
             """.trimIndent(),
             nextStep = ConversationStep.ASK_SPLIT_MODE,
             context = ConversationContext()
@@ -120,7 +117,6 @@ class GroupConversationFlow(
         return ConversationOutput(
             message = """
                 참가자를 입력해주세요.
-                형식: "이름, 이름, 이름"
                 예) 민지, 철수, 영희
             """.trimIndent(),
             nextStep = ConversationStep.ASK_MENU_PARTICIPANTS,
@@ -205,6 +201,8 @@ class GroupConversationFlow(
             context = newCtx
         )
     }
+
+
 
     override fun showResult(context: ConversationContext): ConversationOutput {
         return when (context.splitMode) {

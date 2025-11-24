@@ -1,8 +1,14 @@
 package com.splitmate.screens
 
 import androidx.compose.runtime.*
-import com.splitmate.AppStyles
-import com.splitmate.state.*
+import com.splitmate.styles.AppStyles
+import com.splitmate.state.model.solo.SoloExchangeMode
+import com.splitmate.state.model.solo.SoloTipMode
+import com.splitmate.state.steps.MenuStep
+import com.splitmate.state.uistate.MenuSplitUiState
+import com.splitmate.state.viewmodel.MenuSplitViewModel
+import com.splitmate.ui.SelectableButton
+import com.splitmate.ui.ToastError
 import org.jetbrains.compose.web.attributes.InputType
 import org.jetbrains.compose.web.css.DisplayStyle
 import org.jetbrains.compose.web.css.FlexDirection
@@ -36,6 +42,12 @@ fun MenuSplitScreen(
     viewModel: MenuSplitViewModel = remember { MenuSplitViewModel() }
 ) {
     val state = viewModel.uiState
+
+    ToastError(
+        message = state.apiError,
+        onDismiss = { viewModel.clearApiError() }
+    )
+
 
     Div({
         classes(AppStyles.backButtonRow)
@@ -397,16 +409,17 @@ private fun MenuTipModeStep(
 
     Div({ classes(AppStyles.formColumn) }) {
         Div({ classes(AppStyles.buttonRow) }) {
-            Button(attrs = { onClick { viewModel.onTipModeSelected(SoloTipMode.PERCENT) } }) {
-                Text("% 퍼센트")
+            SelectableButton("% 퍼센트", state.tipMode == SoloTipMode.PERCENT) {
+                viewModel.onTipModeSelected(SoloTipMode.PERCENT)
             }
-            Button(attrs = { onClick { viewModel.onTipModeSelected(SoloTipMode.ABSOLUTE) } }) {
-                Text("$ 금액")
+            SelectableButton("$ 금액", state.tipMode == SoloTipMode.ABSOLUTE) {
+                viewModel.onTipModeSelected(SoloTipMode.ABSOLUTE)
             }
-            Button(attrs = { onClick { viewModel.onTipModeSelected(SoloTipMode.NONE) } }) {
-                Text("팁 없음")
+            SelectableButton("팁 없음", state.tipMode == SoloTipMode.NONE) {
+                viewModel.onTipModeSelected(SoloTipMode.NONE)
             }
         }
+
 
         state.tipModeError?.let { P({ classes(AppStyles.errorText) }) { Text(it) } }
 
@@ -465,15 +478,20 @@ private fun MenuExchangeModeStep(
     H3 { Text("7단계: 환율 모드 선택") }
 
     Div({ classes(AppStyles.formColumn) }) {
-        Button(attrs = { onClick { viewModel.onExchangeModeSelected(SoloExchangeMode.AUTO) } }) {
-            Text("1) 오늘 환율 자동 조회")
-        }
-        Button(attrs = { onClick { viewModel.onExchangeModeSelected(SoloExchangeMode.MANUAL) } }) {
-            Text("2) 환율 직접 입력")
-        }
-        Button(attrs = { onClick { viewModel.onExchangeModeSelected(SoloExchangeMode.NONE) } }) {
-            Text("3) KRW 변환 없이 보기")
-        }
+        SelectableButton(
+            "1) 오늘 환율 자동 조회",
+            state.exchangeMode == SoloExchangeMode.AUTO
+        ) { viewModel.onExchangeModeSelected(SoloExchangeMode.AUTO) }
+
+        SelectableButton(
+            "2) 환율 직접 입력",
+            state.exchangeMode == SoloExchangeMode.MANUAL
+        ) { viewModel.onExchangeModeSelected(SoloExchangeMode.MANUAL) }
+
+        SelectableButton(
+            "3) KRW 변환 없이 보기",
+            state.exchangeMode == SoloExchangeMode.NONE
+        ) { viewModel.onExchangeModeSelected(SoloExchangeMode.NONE) }
 
         state.exchangeModeError?.let { P({ classes(AppStyles.errorText) }) { Text(it) } }
 
@@ -522,7 +540,7 @@ private fun MenuResultStep(
     viewModel: MenuSplitViewModel,
     onRestart: () -> Unit
 ) {
-    H3 { Text("9단계: 결과") }
+    H3 { Text("결과") }
 
     LaunchedEffect(Unit) {
         viewModel.fetchBackendResult()

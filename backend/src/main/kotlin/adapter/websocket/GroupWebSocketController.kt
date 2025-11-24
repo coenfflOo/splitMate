@@ -27,8 +27,11 @@ class GroupWebSocketController(
     ) {
         try {
             val input = message.input
+                .trim()
+                .removePrefix("\uFEFF")
+                .replace("\u200B", "")
 
-            if (input.startsWith("CHAT:")) {
+            if (input.startsWith("CHAT:", ignoreCase = true)) {
                 val chatText = input.removePrefix("CHAT:").trim()
 
                 val state = groupService.getRoom(RoomId(roomId))
